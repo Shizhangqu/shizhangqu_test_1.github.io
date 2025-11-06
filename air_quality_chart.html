@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>污染因子趋势图</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #eee;
+        }
+        
+        h1 {
+            color: #333;
+            font-size: 24px;
+        }
+        
+        .chart-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            background: #f0f0f0;
+            color: #333;
+        }
+        
+        .btn:hover {
+            background: #e0e0e0;
+        }
+        
+        .btn.active {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        #chart {
+            width: 100%;
+            height: 600px;
+        }
+        
+        .legend-info {
+            margin-top: 15px;
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>污染因子趋势图</h1>
+            <div class="chart-controls">
+                <button class="btn active" id="lineBtn" onclick="switchChartType('line')">折线图</button>
+                <button class="btn" id="barBtn" onclick="switchChartType('bar')">柱状图</button>
+            </div>
+        </div>
+        <div id="chart"></div>
+        <div class="legend-info">
+            <strong>说明：</strong>可通过鼠标滚轮或拖拽时间轴进行缩放，点击图例可显示/隐藏对应数据系列
+        </div>
+    </div>
+
+    <script>
+        // 初始化图表
+        var chartDom = document.getElementById('chart');
+        var myChart = echarts.init(chartDom);
+        var currentChartType = 'line';
+
+        // 生成模拟数据（您可以根据实际需求替换为真实数据）
+        function generateData() {
+            var dates = [];
+            var startDate = new Date('2024-01-01');
+            var endDate = new Date('2024-01-31');
+            
+            for (var d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+                dates.push(d.toISOString().split('T')[0]);
+            }
+            
+            // 生成随机数据
+            function randomData(min, max) {
+                return dates.map(() => Math.floor(Math.random() * (max - min + 1)) + min);
+            }
+            
+            return {
+                dates: dates,
+                aqi: randomData(50, 200),
+                pm25: randomData(20, 150),
+                pm10: randomData(30, 200),
+                o3: randomData(50, 200),
+                o38h: randomData(50, 200),
+                no2: randomData(20, 100),
+                so2: randomData(10, 80),
+                co: randomData(1, 5).map(v => (v / 10).toFixed(1)) // CO通常是小数值
+            };
+        }
+
+        var data = generateData();
+
+        // 图表配置
+        function getOption(chartType) {
+            var series = [];
+            var unitMap = {
+                'AQI': '',
+                'PM2.5': 'μg/m³',
+                'PM10': 'μg/m³',
+                'O₃': 'μg/m³',
+                'O₃-8h': 'μg/m³',
+                'NO₂': 'μg/m³',
+                'SO₂': 'μg/m³',
+                'CO': 'mg/m³'
+            };
+
+            var dataKeys = [
+                { key: 'aqi', name: 'AQI' },
+                { key: 'pm25', name: 'PM2.5' },
+                { key: 'pm10', name: 'PM10' },
+                { key: 'o3', name: 'O₃' },
+                { key: 'o38h', name: 'O₃-8h' },
+                { key: 'no2', name: 'NO₂' },
+                { key: 'so2', name: 'SO₂' },
+                { key: 'co', name: 'CO' }
+            ];
+
+            dataKeys.forEach(function(item, index) {
+                series.push({
+                    name: item.name,
+                    type: chartType,
+                    data: data[item.key],
+                    smooth: chartType === 'line',
+                    symbol: chartType === 'line' ? 'circle' : 'none',
+                    symbolSize: chartType === 'line' ? 4 : 6,
+                    lineStyle: {
+                        width: 2
+                    },
+                    itemStyle: {
+                        borderRadius: chartType === 'bar' ? [4, 4, 0, 0] : 0
+                    },
+                    yAxisIndex: item.key === 'co' ? 1 : 0 // CO使用右侧Y轴
+                });
+            });
+
+            return {
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: {
+                        type: 'cross'
+                    },
+                    formatter: function(params) {
+                        var result = params[0].axisValue + '<br/>';
+                        params.forEach(function(item) {
+                            result += item.marker + item.seriesName + ': ' + item.value + 
+                                     (unitMap[item.seriesName] ? ' ' + unitMap[item.seriesName] : '') + '<br/>';
+                        });
+                        return result;
+                    }
+                },
+                legend: {
+                    data: ['AQI', 'PM2.5', 'PM10', 'O₃', 'O₃-8h', 'NO₂', 'SO₂', 'CO'],
+                    top: 30,
+                    type: 'scroll',
+                    pageButtonItemGap: 10
+                },
+                grid: {
+                    left: '3%',
+                    right: '8%',
+                    bottom: '15%',
+                    top: '15%',
+                    containLabel: true
+                },
+                toolbox: {
+                    feature: {
+                        dataZoom: {
+                            yAxisIndex: 'none'
+                        },
+                        restore: {},
+                        saveAsImage: {}
+                    },
+                    right: 20
+                },
+                dataZoom: [
+                    {
+                        type: 'inside',
+                        start: 0,
+                        end: 100,
+                        xAxisIndex: [0]
+                    },
+                    {
+                        type: 'slider',
+                        start: 0,
+                        end: 100,
+                        xAxisIndex: [0],
+                        bottom: 30,
+                        height: 30,
+                        handleSize: 10,
+                        handleStyle: {
+                            color: '#4CAF50'
+                        },
+                        dataBackground: {
+                            areaStyle: {
+                                color: '#e3f2fd'
+                            },
+                            lineStyle: {
+                                color: '#1976d2'
+                            }
+                        },
+                        selectedDataBackground: {
+                            areaStyle: {
+                                color: '#bbdefb'
+                            },
+                            lineStyle: {
+                                color: '#1976d2'
+                            }
+                        },
+                        fillerColor: 'rgba(25, 118, 210, 0.2)',
+                        borderColor: '#1976d2'
+                    }
+                ],
+                xAxis: {
+                    type: 'category',
+                    boundaryGap: chartType === 'bar',
+                    data: data.dates,
+                    axisLabel: {
+                        rotate: 45,
+                        formatter: function(value) {
+                            return value.split('-').slice(1).join('-'); // 只显示月-日
+                        }
+                    },
+                    axisLine: {
+                        lineStyle: {
+                            color: '#666'
+                        }
+                    }
+                },
+                yAxis: [
+                    {
+                        type: 'value',
+                        name: '浓度值',
+                        position: 'left',
+                        axisLabel: {
+                            formatter: '{value}'
+                        },
+                        splitLine: {
+                            show: true,
+                            lineStyle: {
+                                type: 'dashed'
+                            }
+                        }
+                    },
+                    {
+                        type: 'value',
+                        name: 'CO (mg/m³)',
+                        position: 'right',
+                        axisLabel: {
+                            formatter: '{value}'
+                        },
+                        splitLine: {
+                            show: false
+                        }
+                    }
+                ],
+                series: series,
+                color: [
+                    '#5470c6', // AQI
+                    '#91cc75', // PM2.5
+                    '#fac858', // PM10
+                    '#ee6666', // O₃
+                    '#73c0de', // O₃-8h
+                    '#3ba272', // NO₂
+                    '#fc8452', // SO₂
+                    '#9a60b4'  // CO
+                ]
+            };
+        }
+
+        // 切换图表类型
+        function switchChartType(type) {
+            currentChartType = type;
+            myChart.setOption(getOption(type), true);
+            
+            // 更新按钮状态
+            document.getElementById('lineBtn').classList.toggle('active', type === 'line');
+            document.getElementById('barBtn').classList.toggle('active', type === 'bar');
+        }
+
+        // 初始化图表
+        myChart.setOption(getOption('line'));
+
+        // 响应式调整
+        window.addEventListener('resize', function() {
+            myChart.resize();
+        });
+
+        // 数据更新示例（您可以通过API获取真实数据）
+        function updateData(newData) {
+            data = newData;
+            myChart.setOption(getOption(currentChartType), true);
+        }
+    </script>
+</body>
+</html>
+
