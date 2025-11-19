@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>污染物日历分析</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: #f5f7fa;
+            padding: 0;
+        }
+        /* 下拉多选框样式 */
+        .dropdown-multiselect {
+            position: relative;
+            min-width: 350px;
+        }
+        
+        .dropdown-header {
+            padding: 8px 12px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+        }
+        
+        .dropdown-header:hover {
+            border-color: #3498db;
+        }
+        
+        .dropdown-arrow {
+            font-size: 10px;
+            transition: transform 0.3s;
+        }
+        
+        .dropdown-content {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 350px;
+            background: white;
+            border: 1px solid #ddd;
+            border-top: none;
+            border-radius: 0 0 4px 4px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .dropdown-item {
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .dropdown-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .dropdown-item input[type="checkbox"] {
+            margin: 0;
+            min-width: auto;
+        }
+        
+        .dropdown-item label {
+            margin: 0;
+            font-weight: normal;
+            cursor: pointer;
+        }
+        
+        .dropdown-divider {
+            height: 1px;
+            background-color: #e9ecef;
+            margin: 4px 0;
+        }
+        /* 图表类型切换按钮 */
+        .chart-type-selector {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .chart-type-btn {
+            padding: 5px 10px;
+            background: #ecf0f1;
+            color: #2c3e50;
+            border: 1px solid #bdc3c7;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+        
+        .chart-type-btn:hover {
+            background: #d5dbdb;
+        }
+        
+        .chart-type-btn.active {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+        /* 顶部导航栏 */
+        .navbar {
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 0 30px;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 70px;
+        }
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #3498db;
+            font-size: 20px;
+            font-weight: 600;
+            text-decoration: none;
+        }
+        .nav-logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .nav-menu {
+            display: flex;
+            gap: 5px;
+            list-style: none;
+        }
+        .nav-menu > li {
+            position: relative;
+        }
+        .nav-menu > li > a {
+            display: block;
+            padding: 10px 20px;
+            color: #555;
+            text-decoration: none;
+            border-radius: 6px;
+            transition: all 0.3s;
+            font-size: 15px;
+            position: relative;
+        }
+        .nav-menu > li > a:hover {
+            background: #f0f0f0;
+            color: #3498db;
+        }
+        .nav-menu > li > a.active {
+            background: #3498db;
+            color: white;
+        }
+        .nav-menu > li.has-submenu > a::after {
+            content: '▼';
+            display: inline-block;
+            margin-left: 5px;
+            font-size: 10px;
+        }
+        /* 下拉菜单 */
+        .submenu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: white;
+            min-width: 180px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-radius: 6px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s;
+            z-index: 1000;
+            margin-top: 5px;
+            padding: 5px 0;
+        }
+        /* 用户菜单 */
+        .user-menu {
+            position: relative;
+            margin-left: 20px;
+        }
+        .user-menu-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: #f0f0f0;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+            color: #495057;
+        }
+        .user-menu-btn:hover {
+            background: #e9ecef;
+            border-color: #dee2e6;
+        }
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .user-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            min-width: 160px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-radius: 8px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s;
+            z-index: 1000;
+            margin-top: 8px;
+            padding: 8px 0;
+        }
+        .user-menu:hover .user-dropdown {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        .user-dropdown a {
+            display: block;
+            padding: 10px 16px;
+            color: #495057;
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .user-dropdown a:hover {
+            background: #f8f9fa;
+            color: #3498db;
+            padding-left: 20px;
+        }
+        .user-dropdown .divider {
+            height: 1px;
+            background: #e9ecef;
+            margin: 8px 0;
+        }
+        .nav-menu > li:hover .submenu {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        .submenu li {
+            list-style: none;
+        }
+        .submenu li a {
+            display: block;
+            padding: 10px 20px;
+            color: #555;
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .submenu li a:hover {
+            background: #f0f0f0;
+            color: #3498db;
+            padding-left: 25px;
+        }
+        .submenu li a.active {
+            background: #3498db;
+            color: white;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-top: 15px;
+            margin-bottom: 15px;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 8px;
+            font-size: 24px;
+        }
+        .filter-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        .filter-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .filter-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        label {
+            font-weight: 600;
+            color: #555;
+            white-space: nowrap;
+            font-size: 13px;
+        }
+        select, input {
+            padding: 6px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+            min-width: 120px;
+        }
+        button {
+            padding: 8px 16px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        /* 年份选择容器 */
+        .year-selector {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .year-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 13px;
+        }
+        .year-checkbox:hover {
+            border-color: #3498db;
+        }
+        .year-checkbox.selected {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+        .year-checkbox input[type="checkbox"] {
+            min-width: auto;
+            margin: 0;
+        }
+        /* 日历包装器 */
+        .calendar-wrapper {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+        }
+        .calendar-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .calendar-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        .month-nav {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .month-nav button {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+        .current-month {
+            font-size: 14px;
+            font-weight: 600;
+            color: #3498db;
+            min-width: 100px;
+            text-align: center;
+        }
+        /* 调整后的日历网格 */
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            background: #ddd;
+            padding: 1px;
+        }
+        .calendar-day {
+            background: white;
+            padding: 4px;
+            text-align: center;
+            min-height: 45px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            font-size: 10px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .calendar-day:hover {
+            transform: scale(1.05);
+            z-index: 10;
+        }
+        .calendar-day.weekday-header {
+            background: #3498db;
+            color: white;
+            font-weight: 600;
+            min-height: 25px;
+            font-size: 11px;
+            cursor: default;
+        }
+        .calendar-day.weekday-header:hover {
+            transform: none;
+        }
+        .day-number {
+            font-size: 11px;
+            font-weight: 600;
+            margin-bottom: 1px;
+        }
+        .day-value {
+            font-size: 9px;
+            color: #666;
+            margin-bottom: 1px;
+        }
+        .holiday-label {
+            font-size: 7px;
+            color: #e74c3c;
+            font-weight: bold;
+            margin-top: 1px;
+        }
+        .lunar-date {
+            font-size: 7px;
+            color: #999;
+            margin-top: 1px;
+        }
+        .legend {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+            font-size: 13px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+        }
+        /* 节日特殊样式 */
+        .calendar-day.holiday {
+            border: 1px solid #e74c3c;
+            background: #fff5f5;
+        }
+        /* 月份标题 */
+        .month-header {
+            grid-column: span 7;
+            background: #f8f9fa;
+            padding: 6px;
+            text-align: center;
+            font-weight: 600;
+            color: #3498db;
+            border-bottom: 2px solid #3498db;
+            font-size: 13px;
+        }
+        /* 工具提示 */
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            z-index: 100;
+            pointer-events: none;
+            display: none;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="nav-logo">
+                <div class="nav-logo-icon">AQ</div>
+                <span>空气质量分析服务系统</span>
+            </a>
+            <ul class="nav-menu">
+                <li><a href="index.html">首页</a></li>
+                <li><a href="air-quality-query.html">空气质量查询</a></li>
+                <li class="has-submenu">
+                    <a href="#">时空变化分析</a>
+                    <ul class="submenu">
+                        <li><a href="period-comparison.html">时段对比</a></li>
+                        <li><a href="station-comparison.html">站点对比</a></li>
+                        <li><a href="time-anomaly.html">时间距平</a></li>
+                    </ul>
+                </li>
+                <li class="has-submenu">
+                    <a href="#">污染物特征分析</a>
+                    <ul class="submenu">
+                        <li><a href="pollutant-correlation.html">污染物关联性分析</a></li>
+                        <li><a href="pollutant-calendar.html" class="active">污染物日历分析</a></li>
+                        <li><a href="pollutant-weekday.html">污染物星期分析</a></li>
+                        <li><a href="pollutant-hourly.html">污染物小时分析</a></li>
+                    </ul>
+                </li>
+                <li class="has-submenu">
+                    <a href="#">达标压力测算</a>
+                    <ul class="submenu">
+                        <li><a href="compliance-target.html">达标目标</a></li>
+                        <li><a href="compliance-analysis.html">达标分析</a></li>
+                    </ul>
+                </li>
+            </ul>
+            
+            <!-- 用户菜单 -->
+            <div class="user-menu" id="userMenu">
+                <div class="user-menu-btn">
+                    <div class="user-avatar" id="userAvatar">A</div>
+                    <span id="userName">管理员</span>
+                </div>
+                <div class="user-dropdown">
+                    <a href="profile.html">个人中心</a>
+                    <div class="divider"></div>
+                    <a href="#" onclick="logout()">退出登录</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <div class="container">
+        <h1>污染物日历分析</h1>
+        
+        <div class="filter-section">
+            <div class="filter-row">
+                <div class="filter-item">
+                    <label>年度范围：</label>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <select id="startYear">
+                            <option value="2020">2020</option>
+                            <option value="2021">2021</option>
+                            <option value="2022">2022</option>
+                            <option value="2023" selected>2023</option>
+                            <option value="2024">2024</option>
+                        </select>
+                        <span>至</span>
+                        <select id="endYear">
+                            <option value="2020">2020</option>
+                            <option value="2021">2021</option>
+                            <option value="2022">2022</option>
+                            <option value="2023">2023</option>
+                            <option value="2024" selected>2024</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="filter-item">
+                    <label>污染物类型：</label>
+                    <select id="pollutantType">
+                        <option value="pollutant">污染物类型</option>
+                        <option value="primary">首要污染物</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label>污染物：</label>
+                    <select id="pollutantSelect">
+                        <option value="PM25">PM2.5</option>
+                        <option value="PM10">PM10</option>
+                        <option value="O3_8h">O₃-8h</option>
+                        <option value="NO2">NO₂</option>
+                        <option value="SO2">SO₂</option>
+                        <option value="CO">CO</option>
+                        <option value="AQI">AQI</option>
+                    </select>
+                </div>
+                <!-- 分析类型选择将移至日历图右上角 -->
+                <div class="filter-item">
+                    <label>站点：</label>
+                    <div class="dropdown-multiselect" id="stationDropdown">
+                        <div class="dropdown-header">
+                            <span id="selectedStationsText">已选择 0 个站点</span>
+                            <span class="dropdown-arrow">▼</span>
+                        </div>
+                        <div class="dropdown-content" style="display: none;">
+                            <div class="dropdown-item">
+                                <input type="checkbox" id="selectAllStations">
+                                <label for="selectAllStations">全选</label>
+                            </div>
+                            <div class="dropdown-divider"></div>
+                            <div class="dropdown-item">
+                                <input type="checkbox" id="station1" value="东山公园空气监测站">
+                                <label for="station1">东山公园空气监测站</label>
+                            </div>
+                            <div class="dropdown-item">
+                                <input type="checkbox" id="station2" value="德阳市教育局空气监测站">
+                                <label for="station2">德阳市教育局空气监测站</label>
+                            </div>
+                            <div class="dropdown-item">
+                                <input type="checkbox" id="station3" value="西小区空气监测站">
+                                <label for="station3">西小区空气监测站</label>
+                            </div>
+                            <div class="dropdown-item">
+                                <input type="checkbox" id="station4" value="耐火材料厂空气监测站">
+                                <label for="station4">耐火材料厂空气监测站</label>
+                            </div>
+                            <div class="dropdown-item">
+                                <input type="checkbox" id="station5" value="德阳经济技术开发区监测站">
+                                <label for="station5">德阳经济技术开发区监测站</label>
+                            </div>
+                            <div class="dropdown-item">
+                                <input type="checkbox" id="station6" value="旌阳区政务中心空气监测站">
+                                <label for="station6">旌阳区政务中心空气监测站</label>
+                            </div>
+                            <div class="dropdown-item">
+                                <input type="checkbox" id="station7" value="德阳市人民医院空气监测站">
+                                <label for="station7">德阳市人民医院空气监测站</label>
+                            </div>
+                            <div class="dropdown-item">
+                                <input type="checkbox" id="station8" value="广汉市第一中学空气监测站">
+                                <label for="station8">广汉市第一中学空气监测站</label>
+                            </div>
+                            <div class="dropdown-item">
+                                <input type="checkbox" id="station9" value="什邡市职中空气监测站">
+                                <label for="station9">什邡市职中空气监测站</label>
+                            </div>
+                            <div class="dropdown-item">
+                                <input type="checkbox" id="station10" value="绵竹市环保局空气监测站">
+                                <label for="station10">绵竹市环保局空气监测站</label>
+                            </div>
+                            <div class="dropdown-item">
+                                <input type="checkbox" id="station11" value="中江县凯江镇空气监测站">
+                                <label for="station11">中江县凯江镇空气监测站</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="filter-item" id="meteorologicalSelect" style="display: none;">
+                    <label>气象指标：</label>
+                    <select id="meteorologicalIndicator">
+                        <option value="windDirection">风向</option>
+                        <option value="windSpeed">风速</option>
+                        <option value="temperature">温度</option>
+                        <option value="humidity">相对湿度</option>
+                        <option value="pressure">大气压</option>
+                        <option value="precipitation">降水量</option>
+                        <option value="maxTemperature">日最高温度</option>
+                        <option value="minHumidity">日最低湿度</option>
+                        <option value="pressureDiff">气压差</option>
+                        <option value="minTemperature">日最低温度</option>
+                        <option value="maxHumidity">日最高湿度</option>
+                    </select>
+                </div>
+                <button onclick="analyze()">分析</button>
+            </div>
+        </div>
+
+        <div class="calendar-wrapper">
+            <div class="calendar-controls">
+                <div class="calendar-title" id="calendarTitle">污染物日历图</div>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <!-- 分析类型切换按钮 -->
+                    <div class="chart-type-selector">
+                        <button class="chart-type-btn active" data-type="regular" onclick="switchAnalysisType('regular')">常规日历</button>
+                        <button class="chart-type-btn" data-type="holiday" onclick="switchAnalysisType('holiday')">节日日历</button>
+                        <button class="chart-type-btn" data-type="meteorological" onclick="switchAnalysisType('meteorological')">气象日历</button>
+                        <button class="chart-type-btn" data-type="lunar" onclick="switchAnalysisType('lunar')">农历日历</button>
+                    </div>
+                    
+                    <div class="month-nav">
+                        <button onclick="changeMonth(-1)">◀ 上一月</button>
+                        <div class="current-month" id="currentMonth">2024年1月</div>
+                        <button onclick="changeMonth(1)">下一月 ▶</button>
+                    </div>
+                </div>
+            </div>
+            <div class="calendar-grid" id="calendarGrid"></div>
+            <div class="legend" id="legend"></div>
+        </div>
+    </div>
+
+    <!-- 工具提示 -->
+    <div class="tooltip" id="tooltip"></div>
+
+    <script>
+        let calendarData = {};
+        let currentYear = 2024;
+        let currentMonth = 0; // 0-11
+
+        // 农历转换函数（简化版）
+        function getLunarDate(year, month, day) {
+            // 这里使用简化的农历转换，实际应用中应该使用更精确的农历库
+            const lunarMonths = ['正月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '冬月', '腊月'];
+            const lunarDays = ['初一', '初二', '初三', '初四', '初五', '初六', '初七', '初八', '初九', '初十', 
+                              '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十', 
+                              '廿一', '廿二', '廿三', '廿四', '廿五', '廿六', '廿七', '廿八', '廿九', '三十'];
+            
+            // 简单的模拟，实际应该使用精确的农历计算
+            const lunarMonth = (month + 1) % 12;
+            const lunarDay = (day - 1) % 30;
+            
+            return `${lunarMonths[lunarMonth]}${lunarDays[lunarDay]}`;
+        }
+
+        // 节日数据
+        function getHolidayInfo(year, month, day) {
+            const holidays = {
+                '01-01': '元旦',
+                '02-10': '春节', '02-11': '春节', '02-12': '春节', '02-13': '春节', '02-14': '春节', '02-15': '春节', '02-16': '春节', '02-17': '春节',
+                '04-04': '清明节', '04-05': '清明节', '04-06': '清明节',
+                '05-01': '劳动节', '05-02': '劳动节', '05-03': '劳动节', '05-04': '劳动节', '05-05': '劳动节',
+                '06-10': '端午节',
+                '09-15': '中秋节', '09-16': '中秋节', '09-17': '中秋节',
+                '10-01': '国庆节', '10-02': '国庆节', '10-03': '国庆节', '10-04': '国庆节', '10-05': '国庆节', '10-06': '国庆节', '10-07': '国庆节'
+            };
+            
+            const dateStr = `${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            return holidays[dateStr] || '';
+        }
+
+        // 生成演示数据
+        function generateCalendarData(year) {
+            const data = {};
+            const startDate = new Date(year, 0, 1);
+            const endDate = new Date(year, 11, 31);
+            
+            for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+                const dateStr = d.toISOString().split('T')[0];
+                const dayOfYear = Math.floor((d - new Date(year, 0, 0)) / 1000 / 60 / 60 / 24);
+                const seasonalFactor = Math.sin(dayOfYear / 365 * Math.PI * 2);
+                const month = d.getMonth();
+                const day = d.getDate();
+                const holiday = getHolidayInfo(year, month, day);
+                const isHoliday = holiday !== '';
+                
+                // 节假日通常空气质量较差
+                const holidayFactor = isHoliday ? 1.2 : 1.0;
+                
+                data[dateStr] = {
+                    date: dateStr,
+                    day: day,
+                    month: month,
+                    weekday: d.getDay(),
+                    // 根据用户要求调整各污染物的基准值和波动范围
+                    PM25: Math.max(0, Math.round(12 + (Math.random() - 0.5) * 10)), // PM2.5调整在12±5之间波动
+                    PM10: Math.max(0, Math.round(10 + (Math.random() - 0.5) * 20)), // PM10调整在10±10之间波动
+                    O3_8h: Math.max(0, Math.round(10 + (Math.random() - 0.5) * 10)), // O3-8h调整在10±5之间波动
+                    NO2: Math.max(0, Math.round(1 + (Math.random() - 0.5) * 2)), // NO2调整在1±1之间波动
+                    SO2: 1, // SO2固定为1
+                    CO: Math.max(0, Math.round((3 + (Math.random() - 0.5) * 2) * 10) / 10), // CO调整在3±1之间波动
+                    AQI: 0,
+                    primaryPollutant: '',
+                    isHoliday: isHoliday,
+                    holidayName: holiday,
+                    lunarDate: getLunarDate(year, month, day),
+                    windDirection: Math.round(Math.random() * 360),
+                    windSpeed: Math.max(0, Math.round((2 + Math.random() * 4) * 10) / 10),
+                    temperature: Math.round((5 + Math.random() * 15) * 10) / 10,
+                    humidity: Math.round(50 + Math.random() * 40),
+                    pressure: Math.round(1010 + (Math.random() - 0.5) * 20),
+                    precipitation: Math.round(Math.random() * 5 * 10) / 10,
+                    maxTemperature: Math.round((10 + Math.random() * 20) * 10) / 10,
+                    minHumidity: Math.round(30 + Math.random() * 20),
+                    pressureDiff: Math.round((Math.random() - 0.5) * 10 * 10) / 10,
+                    minTemperature: Math.round((0 + Math.random() * 10) * 10) / 10,
+                    maxHumidity: Math.round(60 + Math.random() * 30)
+                };
+                
+                // 计算AQI和首要污染物
+                const aqiValues = {
+                    PM25: calculateAQI(data[dateStr].PM25, 'PM25'),
+                    PM10: calculateAQI(data[dateStr].PM10, 'PM10'),
+                    O3: calculateAQI(data[dateStr].O3_8h, 'O3'),
+                    NO2: calculateAQI(data[dateStr].NO2, 'NO2'),
+                    SO2: calculateAQI(data[dateStr].SO2, 'SO2'),
+                    CO: calculateAQI(data[dateStr].CO, 'CO')
+                };
+                
+                const maxAQI = Math.max(...Object.values(aqiValues));
+                data[dateStr].AQI = Math.round(maxAQI);
+                
+                const primaryMap = { PM25: 'PM2.5', PM10: 'PM10', O3: 'O₃', NO2: 'NO₂', SO2: 'SO₂', CO: 'CO' };
+                for (const [key, value] of Object.entries(aqiValues)) {
+                    if (value === maxAQI && maxAQI > 50) { // AQI大于50时才显示首要污染物
+                        data[dateStr].primaryPollutant = primaryMap[key];
+                        break;
+                    }
+                }
+            }
+            
+            return data;
+        }
+
+        function calculateAQI(value, type) {
+            const breakpoints = {
+                PM25: [[0,50,0,35],[50,100,35,75],[100,150,75,115],[150,200,115,150],[200,300,150,250],[300,500,250,500]],
+                PM10: [[0,50,0,50],[50,100,50,150],[100,150,150,250],[150,200,250,350],[200,300,350,420],[300,500,420,600]],
+                O3: [[0,50,0,100],[50,100,100,160],[100,150,160,215],[150,200,215,265],[200,300,265,800],[300,500,800,1200]],
+                NO2: [[0,50,0,40],[50,100,40,80],[100,150,80,180],[150,200,180,280],[200,300,280,565],[300,500,565,750]],
+                SO2: [[0,50,0,50],[50,100,50,150],[100,150,150,475],[150,200,475,800],[200,300,800,1600],[300,500,1600,2620]],
+                CO: [[0,50,0,2],[50,100,2,4],[100,150,4,14],[150,200,14,24],[200,300,24,36],[300,500,36,60]]
+            };
+            
+            const bp = breakpoints[type] || breakpoints.PM25;
+            for (let i = 0; i < bp.length; i++) {
+                if (value >= bp[i][0] && value <= bp[i][1]) {
+                    const aqi = ((bp[i][3] - bp[i][2]) / (bp[i][1] - bp[i][0])) * (value - bp[i][0]) + bp[i][2];
+                    return aqi;
+                }
+            }
+            return 0;
+        }
+
+        // 获取颜色（基于AQI等级）
+        function getColorByAQI(aqi) {
+            if (aqi <= 50) return '#00e400'; // 优 - 绿色
+            if (aqi <= 100) return '#ffff00'; // 良 - 黄色
+            if (aqi <= 150) return '#ff7e00'; // 轻度污染 - 橙色
+            if (aqi <= 200) return '#ff0000'; // 中度污染 - 红色
+            if (aqi <= 300) return '#8f3f97'; // 重度污染 - 紫色
+            return '#7e0023'; // 严重污染 - 褐红色
+        }
+
+        function getColorByValue(value, pollutant) {
+            // 根据污染物类型和值返回颜色
+            const ranges = {
+                PM25: { good: 35, moderate: 75, unhealthy: 115, veryUnhealthy: 150, hazardous: 250 },
+                PM10: { good: 50, moderate: 150, unhealthy: 250, veryUnhealthy: 350, hazardous: 420 },
+                O3_8h: { good: 100, moderate: 160, unhealthy: 215, veryUnhealthy: 265, hazardous: 800 },
+                NO2: { good: 40, moderate: 80, unhealthy: 180, veryUnhealthy: 280, hazardous: 565 },
+                SO2: { good: 50, moderate: 150, unhealthy: 475, veryUnhealthy: 800, hazardous: 1600 },
+                CO: { good: 2, moderate: 4, unhealthy: 14, veryUnhealthy: 24, hazardous: 36 },
+                AQI: { good: 50, moderate: 100, unhealthy: 150, veryUnhealthy: 200, hazardous: 300 }
+            };
+            
+            const range = ranges[pollutant] || ranges.AQI;
+            if (value <= range.good) return '#00e400';
+            if (value <= range.moderate) return '#ffff00';
+            if (value <= range.unhealthy) return '#ff7e00';
+            if (value <= range.veryUnhealthy) return '#ff0000';
+            if (value <= range.hazardous) return '#8f3f97';
+            return '#7e0023';
+        }
+
+        function analyze() {
+            // 获取年份范围
+            const startYear = parseInt(document.getElementById('startYear').value);
+            const endYear = parseInt(document.getElementById('endYear').value);
+            
+            // 验证年份范围
+            if (startYear > endYear) {
+                alert('开始年份不能大于结束年份');
+                return;
+            }
+            
+            // 生成年份数组
+            const selectedYears = [];
+            for (let year = startYear; year <= endYear; year++) {
+                selectedYears.push(year);
+            }
+            
+            // 设置当前显示的年份为选中的第一个年份
+            currentYear = selectedYears[0];
+            
+            const pollutantType = document.getElementById('pollutantType').value;
+            const pollutant = document.getElementById('pollutantSelect').value;
+            const analysisType = document.getElementById('analysisType').value;
+            
+            // 更新标题
+            const yearRange = selectedYears.length > 1 ? `${Math.min(...selectedYears)}-${Math.max(...selectedYears)}年` : `${selectedYears[0]}年`;
+            document.getElementById('calendarTitle').textContent = `${yearRange} ${getPollutantName(pollutant)} ${getAnalysisTypeName(analysisType)}分析`;
+            
+            // 获取选中的站点
+            const selectedStations = getSelectedStations();
+            
+            // 如果没有选中站点，默认全选
+            if (selectedStations.length === 0) {
+                const allCheckboxes = document.querySelectorAll('.dropdown-multiselect .dropdown-item input[type="checkbox"]');
+                allCheckboxes.forEach(checkbox => {
+                    if (checkbox.id !== 'selectAllStations') {
+                        checkbox.checked = true;
+                        selectedStations.push(checkbox.value);
+                    }
+                });
+                document.getElementById('selectAllStations').checked = true;
+                document.getElementById('selectedStationsText').textContent = `已选择 ${selectedStations.length} 个站点`;
+            }
+            
+            // 生成数据
+            calendarData = {};
+            selectedYears.forEach(year => {
+                const yearData = generateCalendarData(year);
+                // 合并数据
+                Object.assign(calendarData, yearData);
+            });
+            
+            // 显示/隐藏气象指标选择
+            if (analysisType === 'meteorological') {
+                document.getElementById('meteorologicalSelect').style.display = 'flex';
+            } else {
+                document.getElementById('meteorologicalSelect').style.display = 'none';
+            }
+            
+            // 更新月份显示
+            updateMonthDisplay();
+            
+            // 渲染日历
+            renderCalendar(analysisType, pollutantType, pollutant);
+        }
+
+        function getPollutantName(pollutant) {
+            const names = {
+                PM25: 'PM2.5',
+                PM10: 'PM10',
+                O3_8h: 'O₃-8h',
+                NO2: 'NO₂',
+                SO2: 'SO₂',
+                CO: 'CO',
+                AQI: 'AQI'
+            };
+            return names[pollutant] || pollutant;
+        }
+
+        function getAnalysisTypeName(type) {
+            const names = {
+                regular: '常规日历',
+                holiday: '节日日历',
+                meteorological: '气象日历',
+                lunar: '农历日历'
+            };
+            return names[type] || type;
+        }
+
+        function changeMonth(delta) {
+            currentMonth += delta;
+            
+            // 处理月份超出范围的情况
+            if (currentMonth < 0) {
+                currentMonth = 11;
+                currentYear--;
+            } else if (currentMonth > 11) {
+                currentMonth = 0;
+                currentYear++;
+            }
+            
+            // 更新月份显示
+            updateMonthDisplay();
+            
+            // 重新渲染日历
+            const pollutantType = document.getElementById('pollutantType').value;
+            const pollutant = document.getElementById('pollutantSelect').value;
+            const analysisType = document.getElementById('analysisType').value;
+            renderCalendar(analysisType, pollutantType, pollutant);
+        }
+
+        function updateMonthDisplay() {
+            const monthNames = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+            document.getElementById('currentMonth').textContent = `${currentYear}年${monthNames[currentMonth]}`;
+        }
+
+        function renderCalendar(analysisType, pollutantType, pollutant) {
+            const grid = document.getElementById('calendarGrid');
+            grid.innerHTML = '';
+            
+            // 星期标题
+            const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+            weekdays.forEach(day => {
+                const header = document.createElement('div');
+                header.className = 'calendar-day weekday-header';
+                header.textContent = day;
+                grid.appendChild(header);
+            });
+            
+            // 获取当前月份的第一天和最后一天
+            const firstDay = new Date(currentYear, currentMonth, 1);
+            const lastDay = new Date(currentYear, currentMonth + 1, 0);
+            const startOffset = firstDay.getDay();
+            const daysInMonth = lastDay.getDate();
+            
+            // 填充空白
+            for (let i = 0; i < startOffset; i++) {
+                const empty = document.createElement('div');
+                empty.className = 'calendar-day';
+                grid.appendChild(empty);
+            }
+            
+            // 生成日期
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = new Date(currentYear, currentMonth, day);
+                const dateStr = date.toISOString().split('T')[0];
+                const data = calendarData[dateStr];
+                
+                if (!data) continue;
+                
+                // 节日日历模式只显示节日
+                if (analysisType === 'holiday' && !data.isHoliday) {
+                    const emptyDay = document.createElement('div');
+                    emptyDay.className = 'calendar-day';
+                    grid.appendChild(emptyDay);
+                    continue;
+                }
+                
+                const dayDiv = document.createElement('div');
+                dayDiv.className = 'calendar-day';
+                
+                // 如果是节日，添加特殊类
+                if (data.isHoliday) {
+                    dayDiv.classList.add('holiday');
+                }
+                
+                let value, displayValue, color;
+                
+                if (pollutantType === 'primary') {
+                    displayValue = data.primaryPollutant || '无';
+                    value = data.AQI;
+                    color = getColorByAQI(value);
+                } else if (analysisType === 'meteorological') {
+                    const indicator = document.getElementById('meteorologicalIndicator').value;
+                    value = data[indicator];
+                    displayValue = typeof value === 'number' ? value.toFixed(1) : value;
+                    // 气象数据使用渐变色
+                    const maxValue = getMaxValueForIndicator(indicator);
+                    const ratio = Math.min(value / maxValue, 1); // 确保不超过1
+                    color = `hsl(${240 - ratio * 240}, 70%, 50%)`;
+                } else {
+                    value = data[pollutant];
+                    displayValue = value;
+                    color = getColorByValue(value, pollutant);
+                }
+                
+                dayDiv.style.backgroundColor = color;
+                dayDiv.style.color = value > 100 ? 'white' : 'black';
+                dayDiv.style.fontSize = displayValue.length > 4 ? '10px' : '12px';
+                
+                // 构建HTML内容
+                let htmlContent = `
+                    <div class="day-number">${data.day}</div>
+                    <div class="day-value">${displayValue}</div>
+                `;
+                
+                // 添加节日标签（如果是节日且不是只显示节日的模式）
+                if (data.isHoliday) {
+                    htmlContent += `<div class="holiday-label">${data.holidayName}</div>`;
+                }
+                
+                // 农历日历模式添加农历日期
+                if (analysisType === 'lunar') {
+                    htmlContent += `<div class="lunar-date">${data.lunarDate}</div>`;
+                }
+                
+                dayDiv.innerHTML = htmlContent;
+                
+                // 添加工具提示
+                dayDiv.addEventListener('mouseenter', function(e) {
+                    const tooltip = document.getElementById('tooltip');
+                    tooltip.textContent = `${dateStr} - ${getPollutantName(pollutant)}: ${displayValue}`;
+                    if (data.isHoliday) {
+                        tooltip.textContent += ` (${data.holidayName})`;
+                    }
+                    tooltip.style.display = 'block';
+                    tooltip.style.left = (e.pageX + 10) + 'px';
+                    tooltip.style.top = (e.pageY - 10) + 'px';
+                });
+                
+                dayDiv.addEventListener('mousemove', function(e) {
+                    const tooltip = document.getElementById('tooltip');
+                    tooltip.style.left = (e.pageX + 10) + 'px';
+                    tooltip.style.top = (e.pageY - 10) + 'px';
+                });
+                
+                dayDiv.addEventListener('mouseleave', function() {
+                    document.getElementById('tooltip').style.display = 'none';
+                });
+                
+                grid.appendChild(dayDiv);
+            }
+            
+            // 更新图例
+            updateLegend(analysisType, pollutantType, pollutant);
+        }
+
+        function getMaxValueForIndicator(indicator) {
+            const maxValues = {
+                windDirection: 360,
+                windSpeed: 10,
+                temperature: 40,
+                humidity: 100,
+                pressure: 1050,
+                precipitation: 50,
+                maxTemperature: 40,
+                minHumidity: 100,
+                pressureDiff: 20,
+                minTemperature: 20,
+                maxHumidity: 100
+            };
+            return maxValues[indicator] || 100;
+        }
+
+        function updateLegend(analysisType, pollutantType, pollutant) {
+            const legend = document.getElementById('legend');
+            legend.innerHTML = '';
+            
+            if (analysisType === 'meteorological') {
+                const indicator = document.getElementById('meteorologicalIndicator').value;
+                const indicatorNames = {
+                    windDirection: '风向',
+                    windSpeed: '风速',
+                    temperature: '温度',
+                    humidity: '相对湿度',
+                    pressure: '大气压',
+                    precipitation: '降水量',
+                    maxTemperature: '日最高温度',
+                    minHumidity: '日最低湿度',
+                    pressureDiff: '气压差',
+                    minTemperature: '日最低温度',
+                    maxHumidity: '日最高湿度'
+                };
+                legend.innerHTML = `<div class="legend-item"><span>${indicatorNames[indicator]} (低值-蓝色 高值-红色)</span></div>`;
+            } else {
+                const levels = [
+                    { name: '优', color: '#00e400' },
+                    { name: '良', color: '#ffff00' },
+                    { name: '轻度污染', color: '#ff7e00' },
+                    { name: '中度污染', color: '#ff0000' },
+                    { name: '重度污染', color: '#8f3f97' },
+                    { name: '严重污染', color: '#7e0023' }
+                ];
+                
+                levels.forEach(level => {
+                    const item = document.createElement('div');
+                    item.className = 'legend-item';
+                    item.innerHTML = `
+                        <div class="legend-color" style="background: ${level.color}"></div>
+                        <span>${level.name}</span>
+                    `;
+                    legend.appendChild(item);
+                });
+            }
+        }
+
+        // 初始化站点多选下拉框
+        function initStationDropdown() {
+            const dropdown = document.getElementById('stationDropdown');
+            const header = dropdown.querySelector('.dropdown-header');
+            const content = dropdown.querySelector('.dropdown-content');
+            const arrow = dropdown.querySelector('.dropdown-arrow');
+            const checkboxes = dropdown.querySelectorAll('.dropdown-item input[type="checkbox"]');
+            const selectAllCheckbox = document.getElementById('selectAllStations');
+            const selectedText = document.getElementById('selectedStationsText');
+            
+            // 切换下拉框显示
+            header.addEventListener('click', function() {
+                content.style.display = content.style.display === 'none' ? 'block' : 'none';
+                arrow.style.transform = content.style.display === 'none' ? 'rotate(0deg)' : 'rotate(180deg)';
+            });
+            
+            // 点击外部关闭下拉框
+            document.addEventListener('click', function(e) {
+                if (!dropdown.contains(e.target)) {
+                    content.style.display = 'none';
+                    arrow.style.transform = 'rotate(0deg)';
+                }
+            });
+            
+            // 全选功能
+            selectAllCheckbox.addEventListener('change', function() {
+                const isChecked = this.checked;
+                checkboxes.forEach(checkbox => {
+                    if (checkbox.id !== 'selectAllStations') {
+                        checkbox.checked = isChecked;
+                    }
+                });
+                updateSelectedText();
+            });
+            
+            // 单个选择功能
+            checkboxes.forEach(checkbox => {
+                if (checkbox.id !== 'selectAllStations') {
+                    checkbox.addEventListener('change', function() {
+                        updateSelectAllStatus();
+                        updateSelectedText();
+                    });
+                }
+            });
+            
+            // 更新全选状态
+            function updateSelectAllStatus() {
+                const stationCheckboxes = Array.from(checkboxes).filter(cb => cb.id !== 'selectAllStations');
+                const allChecked = stationCheckboxes.every(cb => cb.checked);
+                const anyChecked = stationCheckboxes.some(cb => cb.checked);
+                selectAllCheckbox.checked = allChecked;
+                selectAllCheckbox.indeterminate = anyChecked && !allChecked;
+            }
+            
+            // 更新选中文本
+            function updateSelectedText() {
+                const checkedCount = Array.from(checkboxes).filter(cb => cb.id !== 'selectAllStations' && cb.checked).length;
+                selectedText.textContent = `已选择 ${checkedCount} 个站点`;
+            }
+        }
+        
+        // 分析类型切换函数
+        function switchAnalysisType(type) {
+            // 更新按钮样式
+            document.querySelectorAll('.chart-type-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.type === type) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            // 更新分析类型
+            document.getElementById('analysisType').value = type;
+            
+            // 显示/隐藏气象指标选择
+            if (type === 'meteorological') {
+                document.getElementById('meteorologicalSelect').style.display = 'flex';
+            } else {
+                document.getElementById('meteorologicalSelect').style.display = 'none';
+            }
+            
+            // 重新渲染日历
+            analyze();
+        }
+        
+        // 获取选中的站点
+        function getSelectedStations() {
+            const selectedStations = [];
+            document.querySelectorAll('.dropdown-multiselect input[type="checkbox"]:checked').forEach(checkbox => {
+                if (checkbox.id !== 'selectAllStations') {
+                    selectedStations.push(checkbox.value);
+                }
+            });
+            return selectedStations;
+        }
+
+        // 退出登录函数
+        function logout() {
+            // 这里应该添加实际的退出登录逻辑
+            alert('已退出登录');
+            // 跳转到登录页面
+            window.location.href = 'login.html';
+        }
+        
+        // 初始化
+        window.onload = function() {
+            // 初始化站点下拉多选框
+            initStationDropdown();
+            
+            // 初始化年份范围验证
+            document.getElementById('startYear').addEventListener('change', function() {
+                const startYear = parseInt(this.value);
+                const endYearSelect = document.getElementById('endYear');
+                const currentEndYear = parseInt(endYearSelect.value);
+                
+                if (startYear > currentEndYear) {
+                    endYearSelect.value = this.value;
+                }
+            });
+            
+            document.getElementById('endYear').addEventListener('change', function() {
+                const endYear = parseInt(this.value);
+                const startYearSelect = document.getElementById('startYear');
+                const currentStartYear = parseInt(startYearSelect.value);
+                
+                if (endYear < currentStartYear) {
+                    startYearSelect.value = this.value;
+                }
+            });
+            
+            // 创建隐藏的分析类型输入
+            const analysisTypeInput = document.createElement('input');
+            analysisTypeInput.type = 'hidden';
+            analysisTypeInput.id = 'analysisType';
+            analysisTypeInput.value = 'regular';
+            document.body.appendChild(analysisTypeInput);
+            
+            // 然后执行分析
+            setTimeout(analyze, 100);
+        };
+    </script>
+</body>
+</html>
+

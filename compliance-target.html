@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>达标目标</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: #f5f7fa;
+            padding: 0;
+        }
+        /* 顶部导航栏 */
+        .navbar {
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 0 30px;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 70px;
+        }
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #3498db;
+            font-size: 20px;
+            font-weight: 600;
+            text-decoration: none;
+        }
+        .nav-logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .nav-menu {
+            display: flex;
+            gap: 5px;
+            list-style: none;
+        }
+        .nav-menu > li {
+            position: relative;
+        }
+        .nav-menu > li > a {
+            display: block;
+            padding: 10px 20px;
+            color: #555;
+            text-decoration: none;
+            border-radius: 6px;
+            transition: all 0.3s;
+            font-size: 15px;
+            position: relative;
+        }
+        .nav-menu > li > a:hover {
+            background: #f0f0f0;
+            color: #3498db;
+        }
+        .nav-menu > li > a.active {
+            background: #3498db;
+            color: white;
+        }
+        .nav-menu > li.has-submenu > a::after {
+            content: '▼';
+            display: inline-block;
+            margin-left: 5px;
+            font-size: 10px;
+        }
+        /* 下拉菜单 */
+        .submenu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: white;
+            min-width: 180px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-radius: 6px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s;
+            z-index: 1000;
+            margin-top: 5px;
+            padding: 5px 0;
+        }
+        /* 用户菜单 */
+        .user-menu {
+            position: relative;
+            margin-left: 20px;
+        }
+        .user-menu-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: #f0f0f0;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+            color: #495057;
+        }
+        .user-menu-btn:hover {
+            background: #e9ecef;
+            border-color: #dee2e6;
+        }
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .user-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            min-width: 160px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-radius: 8px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s;
+            z-index: 1000;
+            margin-top: 8px;
+            padding: 8px 0;
+        }
+        .user-menu:hover .user-dropdown {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        .user-dropdown a {
+            display: block;
+            padding: 10px 16px;
+            color: #495057;
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .user-dropdown a:hover {
+            background: #f8f9fa;
+            color: #3498db;
+            padding-left: 20px;
+        }
+        .user-dropdown .divider {
+            height: 1px;
+            background: #e9ecef;
+            margin: 8px 0;
+        }
+        .nav-menu > li:hover .submenu {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        .submenu li {
+            list-style: none;
+        }
+        .submenu li a {
+            display: block;
+            padding: 10px 20px;
+            color: #555;
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .submenu li a:hover {
+            background: #f0f0f0;
+            color: #3498db;
+            padding-left: 25px;
+        }
+        .submenu li a.active {
+            background: #3498db;
+            color: white;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-top: 15px;
+            margin-bottom: 15px;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 8px;
+            font-size: 24px;
+        }
+        /* Tab切换样式 */
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #ddd;
+            margin-bottom: 15px;
+        }
+        .tab {
+            padding: 8px 16px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+            font-weight: 600;
+            color: #666;
+            font-size: 14px;
+        }
+        .tab.active {
+            border-bottom-color: #3498db;
+            color: #3498db;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .target-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+        }
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #3498db;
+        }
+        .target-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            background: white;
+            border-radius: 4px;
+            overflow: hidden;
+            font-size: 13px;
+        }
+        .target-table th, .target-table td {
+            padding: 8px 10px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+            border-right: 1px solid #eee;
+        }
+        .target-table th:last-child, .target-table td:last-child {
+            border-right: none;
+        }
+        .target-table th {
+            background: #3498db;
+            color: white;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            font-size: 12px;
+        }
+        .target-table tr:hover {
+            background: #f5f5f5;
+        }
+        .target-table input {
+            width: 100%;
+            padding: 6px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        .target-table input:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        button {
+            padding: 8px 16px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background 0.3s;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        .btn-success {
+            background: #27ae60;
+        }
+        .btn-success:hover {
+            background: #229954;
+        }
+        .station-selector {
+            margin-bottom: 15px;
+        }
+        .station-selector select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            min-width: 200px;
+        }
+        .pollutants {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .pollutant-item {
+            background: white;
+            padding: 12px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        .pollutant-item label {
+            font-weight: 600;
+            color: #555;
+            display: block;
+            margin-bottom: 6px;
+            font-size: 13px;
+        }
+        .pollutant-item input {
+            width: 100%;
+            padding: 6px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        .time-type-selector {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .time-type-btn {
+            padding: 6px 12px;
+            background: #ecf0f1;
+            color: #2c3e50;
+            border: 1px solid #bdc3c7;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 13px;
+        }
+        .time-type-btn:hover {
+            background: #dfe4ea;
+        }
+        .time-type-btn.active {
+            background: #3498db !important;
+            color: white !important;
+            border-color: #3498db !important;
+        }
+        /* 滚动条样式 */
+        .scrollable-container {
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        /* 站点目标表格特殊样式 */
+        .station-target-table {
+            min-width: 800px;
+        }
+        .station-target-table th:first-child {
+            position: sticky;
+            left: 0;
+            z-index: 10;
+            min-width: 150px;
+        }
+        .station-target-table td:first-child {
+            position: sticky;
+            left: 0;
+            background: #f9f9f9;
+            font-weight: 500;
+            min-width: 150px;
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="nav-logo">
+                <div class="nav-logo-icon">AQ</div>
+                <span>空气质量分析服务系统</span>
+            </a>
+            <ul class="nav-menu">
+                <li><a href="index.html">首页</a></li>
+                <li><a href="air-quality-query.html">空气质量查询</a></li>
+                <li class="has-submenu">
+                    <a href="#">时空变化分析</a>
+                    <ul class="submenu">
+                        <li><a href="period-comparison.html">时段对比</a></li>
+                        <li><a href="station-comparison.html">站点对比</a></li>
+                        <li><a href="time-anomaly.html">时间距平</a></li>
+                    </ul>
+                </li>
+                <li class="has-submenu">
+                    <a href="#">污染物特征分析</a>
+                    <ul class="submenu">
+                        <li><a href="pollutant-correlation.html">污染物关联性分析</a></li>
+                        <li><a href="pollutant-calendar.html">污染物日历分析</a></li>
+                        <li><a href="pollutant-weekday.html">污染物星期分析</a></li>
+                        <li><a href="pollutant-hourly.html">污染物小时分析</a></li>
+                    </ul>
+                </li>
+                <li class="has-submenu">
+                    <a href="#">达标压力测算</a>
+                    <ul class="submenu">
+                        <li><a href="compliance-target.html" class="active">达标目标</a></li>
+                        <li><a href="compliance-analysis.html">达标分析</a></li>
+                    </ul>
+                </li>
+            </ul>
+            
+            <!-- 用户菜单 -->
+            <div class="user-menu" id="userMenu">
+                <div class="user-menu-btn">
+                    <div class="user-avatar" id="userAvatar">A</div>
+                    <span id="userName">管理员</span>
+                </div>
+                <div class="user-dropdown">
+                    <a href="profile.html">个人中心</a>
+                    <div class="divider"></div>
+                    <a href="#" onclick="logout()">退出登录</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <div class="container">
+        <h1>达标目标</h1>
+        
+        <!-- Tab切换 -->
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('city')">城市目标设定</div>
+            <div class="tab" onclick="switchTab('station')">站点目标设定</div>
+        </div>
+        
+        <!-- 城市目标设定内容 -->
+        <div id="cityTabContent" class="tab-content active">
+            <div class="target-section">
+                <div class="time-type-selector">
+                    <button class="time-type-btn active" onclick="switchTimeType('annual')">年度目标</button>
+                    <button class="time-type-btn" onclick="switchTimeType('monthly')">月度目标</button>
+                    <button class="time-type-btn" onclick="switchTimeType('daily')">日度目标</button>
+                </div>
+                <div id="cityTargetTable"></div>
+                <button class="btn-success" onclick="saveCityTargets()">保存城市目标</button>
+            </div>
+        </div>
+        
+        <!-- 站点目标设定内容 -->
+        <div id="stationTabContent" class="tab-content">
+            <div class="target-section">
+                <div class="time-type-selector">
+                    <button class="time-type-btn active" onclick="switchStationTimeType('annual')">年度目标</button>
+                    <button class="time-type-btn" onclick="switchStationTimeType('monthly')">月度目标</button>
+                    <button class="time-type-btn" onclick="switchStationTimeType('daily')">日度目标</button>
+                </div>
+                <div class="scrollable-container">
+                    <div id="stationTargetTable"></div>
+                </div>
+                <button class="btn-success" onclick="saveStationTargets()">保存站点目标</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentTimeType = 'annual';
+        let currentStationTimeType = 'annual';
+        let currentTab = 'city';
+        
+        // 站点数据（厦门地区11个监测站）
+        const stations = [
+            { id: 'station1', name: '鼓浪屿海滨空气监测站' },
+            { id: 'station2', name: '莲前大道空气质量监测站' },
+            { id: 'station3', name: '筼筜湖生态监测站' },
+            { id: 'station4', name: '五缘湾湿地空气监测站' },
+            { id: 'station5', name: '枋湖工业片区空气质量监测站' },
+            { id: 'station6', name: '杏林湾新城空气监测站' },
+            { id: 'station7', name: '厦门北站交通枢纽监测站' },
+            { id: 'station8', name: '嵩屿码头空气监测站' },
+            { id: 'station9', name: '海沧生物医药园监测站' },
+            { id: 'station10', name: '同安工业集中区空气监测站' },
+            { id: 'station11', name: '翔安机场片区空气质量监测站' }
+        ];
+        
+        // 污染物数据，增加AQI指标
+        const pollutants = [
+            { key: 'AQI', name: 'AQI', unit: '', defaultValue: 75 },
+            { key: 'PM25', name: 'PM2.5', unit: 'μg/m³', defaultValue: 35 },
+            { key: 'PM10', name: 'PM10', unit: 'μg/m³', defaultValue: 70 },
+            { key: 'O3_8h', name: 'O₃-8h', unit: 'μg/m³', defaultValue: 160 },
+            { key: 'NO2', name: 'NO₂', unit: 'μg/m³', defaultValue: 40 },
+            { key: 'SO2', name: 'SO₂', unit: 'μg/m³', defaultValue: 60 },
+            { key: 'CO', name: 'CO', unit: 'mg/m³', defaultValue: 4 }
+        ];
+        
+        // 初始化城市目标数据，包含AQI
+        let cityTargets = {
+            annual: {},
+            monthly: {},
+            daily: {}
+        };
+        
+        // 初始化站点目标数据，包含AQI
+        let stationTargets = {};
+        
+        // 初始化默认数据
+        function initDefaultData() {
+            // 初始化城市默认目标
+            ['annual', 'monthly', 'daily'].forEach(timeType => {
+                pollutants.forEach(pollutant => {
+                    cityTargets[timeType][pollutant.key] = pollutant.defaultValue;
+                });
+            });
+            
+            // 初始化站点默认目标
+            stations.forEach(station => {
+                stationTargets[station.id] = {
+                    annual: {},
+                    monthly: {},
+                    daily: {}
+                };
+                
+                ['annual', 'monthly', 'daily'].forEach(timeType => {
+                    pollutants.forEach(pollutant => {
+                        stationTargets[station.id][timeType][pollutant.key] = pollutant.defaultValue;
+                    });
+                });
+            });
+        }
+        
+        // Tab切换函数
+        function switchTab(tabName) {
+            currentTab = tabName;
+            
+            // 更新Tab样式
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelector(`.tab[onclick="switchTab('${tabName}')"]`).classList.add('active');
+            
+            // 更新内容显示
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(`${tabName}TabContent`).classList.add('active');
+        }
+
+        // 切换城市时间类型
+        function switchTimeType(type) {
+            currentTimeType = type;
+            
+            // 更新按钮状态 - 修复选中效果
+            const buttons = document.querySelectorAll('#cityTabContent .time-type-selector .time-type-btn');
+            buttons.forEach((btn, idx) => {
+                btn.classList.remove('active');
+            });
+            buttons[['annual', 'monthly', 'daily'].indexOf(type)].classList.add('active');
+            
+            renderCityTargetTable();
+        }
+
+        // 切换站点时间类型
+        function switchStationTimeType(type) {
+            currentStationTimeType = type;
+            
+            // 更新按钮状态 - 修复选中效果
+            const buttons = document.querySelectorAll('#stationTabContent .time-type-selector .time-type-btn');
+            buttons.forEach((btn, idx) => {
+                btn.classList.remove('active');
+            });
+            buttons[['annual', 'monthly', 'daily'].indexOf(type)].classList.add('active');
+            
+            renderStationTargetTable();
+        }
+
+        // 渲染城市目标表格
+        function renderCityTargetTable() {
+            // 添加时间筛选更新函数
+            updateCityTimeFilter();
+            
+            const container = document.getElementById('cityTargetTable');
+            const timeTypeName = currentTimeType === 'annual' ? '年度' : currentTimeType === 'monthly' ? '月度' : '日度';
+            
+            // 添加时间选择器到表格上方
+            let timeSelectorHtml = '';
+            if (currentTimeType === 'annual') {
+                timeSelectorHtml = `
+                    <div style="display: flex; justify-content: flex-end; margin-bottom: 10px; gap: 10px;">
+                        <div>
+                            <label>年份：</label>
+                            <select id="cityYearSelector" onchange="updateCityTimeFilter()">
+                                <option value="2024">2024年</option>
+                                <option value="2025">2025年</option>
+                                <option value="2026">2026年</option>
+                                <option value="2027">2027年</option>
+                                <option value="2028">2028年</option>
+                            </select>
+                        </div>
+                    </div>
+                `;
+            } else if (currentTimeType === 'monthly') {
+                timeSelectorHtml = `
+                    <div style="display: flex; justify-content: flex-end; margin-bottom: 10px; gap: 10px;">
+                        <div>
+                            <label>年份：</label>
+                            <select id="cityYearSelector" onchange="updateCityTimeFilter()">
+                                <option value="2024">2024年</option>
+                                <option value="2025">2025年</option>
+                                <option value="2026">2026年</option>
+                                <option value="2027">2027年</option>
+                                <option value="2028">2028年</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>月份：</label>
+                            <select id="cityMonthSelector" onchange="updateCityTimeFilter()">
+                                <option value="1">1月</option>
+                                <option value="2">2月</option>
+                                <option value="3">3月</option>
+                                <option value="4">4月</option>
+                                <option value="5">5月</option>
+                                <option value="6">6月</option>
+                                <option value="7">7月</option>
+                                <option value="8">8月</option>
+                                <option value="9">9月</option>
+                                <option value="10">10月</option>
+                                <option value="11">11月</option>
+                                <option value="12">12月</option>
+                            </select>
+                        </div>
+                    </div>
+                `;
+            } else if (currentTimeType === 'daily') {
+                timeSelectorHtml = `
+                    <div style="display: flex; justify-content: flex-end; margin-bottom: 10px; gap: 10px;">
+                        <div>
+                            <label>日期：</label>
+                            <input type="date" id="cityDateSelector" onchange="updateCityTimeFilter()">
+                        </div>
+                    </div>
+                `;
+            }
+            
+            let html = timeSelectorHtml + `<table class="target-table">
+                <thead>
+                    <tr>
+                        <th>污染物</th>
+                        <th>目标值 (${timeTypeName})</th>
+                        <th>单位</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+            
+            pollutants.forEach(pollutant => {
+                const value = cityTargets[currentTimeType][pollutant.key] || '';
+                html += `
+                    <tr>
+                        <td>${pollutant.name}</td>
+                        <td>
+                            <input type="number" 
+                                   id="city_${pollutant.key}" 
+                                   value="${value}" 
+                                   step="${pollutant.key === 'CO' ? '0.1' : '1'}"
+                                   min="0">
+                        </td>
+                        <td>${pollutant.unit}</td>
+                    </tr>
+                `;
+            });
+            
+            html += `</tbody></table>`;
+            container.innerHTML = html;
+        }
+
+        // 更新站点时间筛选
+        function updateStationTimeFilter() {
+            // 这里可以添加根据选择的时间更新表格数据的逻辑
+            console.log("站点时间筛选已更新");
+        }
+
+        // 渲染站点目标表格（重构为纵向站点，横向指标）
+        function renderStationTargetTable() {
+            // 添加时间筛选更新函数
+            updateStationTimeFilter();
+            
+            const container = document.getElementById('stationTargetTable');
+            const timeTypeName = currentStationTimeType === 'annual' ? '年度' : currentStationTimeType === 'monthly' ? '月度' : '日度';
+            
+            // 添加时间选择器到表格上方
+            let timeSelectorHtml = '';
+            if (currentStationTimeType === 'annual') {
+                timeSelectorHtml = `
+                    <div style="display: flex; justify-content: flex-end; margin-bottom: 10px; gap: 10px;">
+                        <div>
+                            <label>年份：</label>
+                            <select id="stationYearSelector" onchange="updateStationTimeFilter()">
+                                <option value="2024">2024年</option>
+                                <option value="2025">2025年</option>
+                                <option value="2026">2026年</option>
+                                <option value="2027">2027年</option>
+                                <option value="2028">2028年</option>
+                            </select>
+                        </div>
+                    </div>
+                `;
+            } else if (currentStationTimeType === 'monthly') {
+                timeSelectorHtml = `
+                    <div style="display: flex; justify-content: flex-end; margin-bottom: 10px; gap: 10px;">
+                        <div>
+                            <label>年份：</label>
+                            <select id="stationYearSelector" onchange="updateStationTimeFilter()">
+                                <option value="2024">2024年</option>
+                                <option value="2025">2025年</option>
+                                <option value="2026">2026年</option>
+                                <option value="2027">2027年</option>
+                                <option value="2028">2028年</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>月份：</label>
+                            <select id="stationMonthSelector" onchange="updateStationTimeFilter()">
+                                <option value="1">1月</option>
+                                <option value="2">2月</option>
+                                <option value="3">3月</option>
+                                <option value="4">4月</option>
+                                <option value="5">5月</option>
+                                <option value="6">6月</option>
+                                <option value="7">7月</option>
+                                <option value="8">8月</option>
+                                <option value="9">9月</option>
+                                <option value="10">10月</option>
+                                <option value="11">11月</option>
+                                <option value="12">12月</option>
+                            </select>
+                        </div>
+                    </div>
+                `;
+            } else if (currentStationTimeType === 'daily') {
+                timeSelectorHtml = `
+                    <div style="display: flex; justify-content: flex-end; margin-bottom: 10px; gap: 10px;">
+                        <div>
+                            <label>日期：</label>
+                            <input type="date" id="stationDateSelector" onchange="updateStationTimeFilter()">
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // 生成表格头部
+            let html = timeSelectorHtml + `<table class="target-table station-target-table">
+                <thead>
+                    <tr>
+                        <th>站点名称</th>`;
+            
+            // 添加每个污染物作为表头
+            pollutants.forEach(pollutant => {
+                html += `<th>${pollutant.name}\n(${pollutant.unit})</th>`;
+            });
+            
+            html += `</tr></thead><tbody>`;
+            
+            // 为每个站点生成一行数据
+            stations.forEach(station => {
+                html += `<tr>
+                    <td>${station.name}</td>`;
+                
+                // 为每个污染物生成一个输入框
+                pollutants.forEach(pollutant => {
+                    const value = stationTargets[station.id][currentStationTimeType][pollutant.key] || '';
+                    html += `
+                        <td>
+                            <input type="number" 
+                                   id="station_${station.id}_${pollutant.key}" 
+                                   value="${value}" 
+                                   step="${pollutant.key === 'CO' ? '0.1' : '1'}"
+                                   min="0">
+                        </td>
+                    `;
+                });
+                
+                html += `</tr>`;
+            });
+            
+            html += `</tbody></table>`;
+            container.innerHTML = html;
+        }
+
+        // 更新城市时间筛选
+        function updateCityTimeFilter() {
+            // 这里可以添加根据选择的时间更新表格数据的逻辑
+            console.log("城市时间筛选已更新");
+        }
+
+        // 保存城市目标
+        function saveCityTargets() {
+            pollutants.forEach(pollutant => {
+                const input = document.getElementById(`city_${pollutant.key}`);
+                if (input) {
+                    const value = pollutant.key === 'CO' ? parseFloat(input.value) : parseInt(input.value);
+                    cityTargets[currentTimeType][pollutant.key] = value;
+                }
+            });
+            alert('城市目标保存成功！');
+        }
+
+        // 保存站点目标
+        function saveStationTargets() {
+            stations.forEach(station => {
+                pollutants.forEach(pollutant => {
+                    const input = document.getElementById(`station_${station.id}_${pollutant.key}`);
+                    if (input) {
+                        const value = pollutant.key === 'CO' ? parseFloat(input.value) : parseInt(input.value);
+                        stationTargets[station.id][currentStationTimeType][pollutant.key] = value;
+                    }
+                });
+            });
+            alert('站点目标保存成功！');
+        }
+
+        // 初始化
+        window.onload = function() {
+            initDefaultData();
+            renderCityTargetTable();
+            renderStationTargetTable();
+            
+            // 初始化时间选择器的默认值
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = today.getMonth() + 1;
+            
+            // 设置城市目标时间选择器默认值
+            const cityYearSelector = document.getElementById('cityYearSelector');
+            if (cityYearSelector) {
+                cityYearSelector.value = year;
+            }
+            
+            const cityMonthSelector = document.getElementById('cityMonthSelector');
+            if (cityMonthSelector) {
+                cityMonthSelector.value = month;
+            }
+            
+            // 设置站点目标时间选择器默认值
+            const stationYearSelector = document.getElementById('stationYearSelector');
+            if (stationYearSelector) {
+                stationYearSelector.value = year;
+            }
+            
+            const stationMonthSelector = document.getElementById('stationMonthSelector');
+            if (stationMonthSelector) {
+                stationMonthSelector.value = month;
+            }
+        };
+        
+        // 退出登录函数
+        function logout() {
+            alert('退出登录成功');
+            // 这里可以添加实际的退出登录逻辑，比如跳转到登录页面
+            // window.location.href = 'login.html';
+        }
+    </script>
+</body>
+</html>
+

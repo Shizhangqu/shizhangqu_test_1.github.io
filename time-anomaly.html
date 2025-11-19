@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>时间距平</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: #f5f7fa;
+            padding: 0;
+        }
+        /* 顶部导航栏 */
+        .navbar {
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 0 30px;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 70px;
+        }
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #3498db;
+            font-size: 20px;
+            font-weight: 600;
+            text-decoration: none;
+        }
+        .nav-logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .nav-menu {
+            display: flex;
+            gap: 5px;
+            list-style: none;
+        }
+        .nav-menu > li {
+            position: relative;
+        }
+        .nav-menu > li > a {
+            display: block;
+            padding: 10px 20px;
+            color: #555;
+            text-decoration: none;
+            border-radius: 6px;
+            transition: all 0.3s;
+            font-size: 15px;
+            position: relative;
+        }
+        .nav-menu > li > a:hover {
+            background: #f0f0f0;
+            color: #3498db;
+        }
+        .nav-menu > li > a.active {
+            background: #3498db;
+            color: white;
+        }
+        .nav-menu > li.has-submenu > a::after {
+            content: '▼';
+            display: inline-block;
+            margin-left: 5px;
+            font-size: 10px;
+        }
+        /* 下拉菜单 */
+        .submenu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: white;
+            min-width: 180px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-radius: 6px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s;
+            z-index: 1000;
+            margin-top: 5px;
+            padding: 5px 0;
+        }
+        /* 用户菜单 */
+        .user-menu {
+            position: relative;
+            margin-left: 20px;
+        }
+        .user-menu-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: #f0f0f0;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+            color: #495057;
+        }
+        .user-menu-btn:hover {
+            background: #e9ecef;
+            border-color: #dee2e6;
+        }
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .user-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            min-width: 160px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-radius: 8px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s;
+            z-index: 1000;
+            margin-top: 8px;
+            padding: 8px 0;
+        }
+        .user-menu:hover .user-dropdown {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        .user-dropdown a {
+            display: block;
+            padding: 10px 16px;
+            color: #495057;
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .user-dropdown a:hover {
+            background: #f8f9fa;
+            color: #3498db;
+            padding-left: 20px;
+        }
+        .user-dropdown .divider {
+            height: 1px;
+            background: #e9ecef;
+            margin: 8px 0;
+        }
+        .nav-menu > li:hover .submenu {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        .submenu li {
+            list-style: none;
+        }
+        .submenu li a {
+            display: block;
+            padding: 10px 20px;
+            color: #555;
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .submenu li a:hover {
+            background: #f0f0f0;
+            color: #3498db;
+            padding-left: 25px;
+        }
+        .submenu li a.active {
+            background: #3498db;
+            color: white;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-top: 15px;
+            margin-bottom: 15px;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 8px;
+            font-size: 24px;
+        }
+        .filter-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        .filter-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .filter-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        label {
+            font-weight: 600;
+            color: #555;
+            white-space: nowrap;
+            font-size: 13px;
+        }
+        select, input {
+            padding: 6px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+            min-width: 120px;
+        }
+        button {
+            padding: 8px 16px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        .chart-wrapper {
+            background: white;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+        }
+        #anomalyChart {
+            max-height: 300px;
+        }
+        .chart-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        /* 时间轴控制 */
+        .timeline-control {
+            margin-top: 8px;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+        .timeline-slider-container {
+            position: relative;
+            width: 100%;
+            height: 6px;
+            margin: 4px 0;
+        }
+        .timeline-slider-track {
+            position: absolute;
+            width: 100%;
+            height: 6px;
+            background: #ddd;
+            border-radius: 3px;
+        }
+        .timeline-slider-range {
+            position: absolute;
+            height: 6px;
+            background: #3498db;
+            border-radius: 3px;
+        }
+        .timeline-slider-handle {
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            background: #3498db;
+            border: 2px solid white;
+            border-radius: 50%;
+            top: -5px;
+            cursor: pointer;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        .timeline-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 4px;
+            color: #555;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="nav-logo">
+                <div class="nav-logo-icon">AQ</div>
+                <span>空气质量分析服务系统</span>
+            </a>
+            <ul class="nav-menu">
+                <li><a href="index.html">首页</a></li>
+                <li><a href="air-quality-query.html">空气质量查询</a></li>
+                <li class="has-submenu">
+                    <a href="#">时空变化分析</a>
+                    <ul class="submenu">
+                        <li><a href="period-comparison.html">时段对比</a></li>
+                        <li><a href="station-comparison.html">站点对比</a></li>
+                        <li><a href="time-anomaly.html" class="active">时间距平</a></li>
+                    </ul>
+                </li>
+                <li class="has-submenu">
+                    <a href="#">污染物特征分析</a>
+                    <ul class="submenu">
+                        <li><a href="pollutant-correlation.html">污染物关联性分析</a></li>
+                        <li><a href="pollutant-calendar.html">污染物日历分析</a></li>
+                        <li><a href="pollutant-weekday.html">污染物星期分析</a></li>
+                        <li><a href="pollutant-hourly.html">污染物小时分析</a></li>
+                    </ul>
+                </li>
+                <li class="has-submenu">
+                    <a href="#">达标压力测算</a>
+                    <ul class="submenu">
+                        <li><a href="compliance-target.html">达标目标</a></li>
+                        <li><a href="compliance-analysis.html">达标分析</a></li>
+                    </ul>
+                </li>
+            </ul>
+            
+            <!-- 用户菜单 -->
+            <div class="user-menu" id="userMenu">
+                <div class="user-menu-btn">
+                    <div class="user-avatar" id="userAvatar">A</div>
+                    <span id="userName">管理员</span>
+                </div>
+                <div class="user-dropdown">
+                    <a href="profile.html">个人中心</a>
+                    <div class="divider"></div>
+                    <a href="#" onclick="logout()">退出登录</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <div class="container">
+        <h1>时间距平</h1>
+        
+        <div class="filter-section">
+            <div class="filter-row">
+                <div class="filter-item">
+                    <label>站点：</label>
+                    <select id="stationSelect">
+                        <option value="station1">鼓浪屿海滨空气监测站</option>
+                        <option value="station2">莲前大道空气质量监测站</option>
+                        <option value="station3">筼筜湖生态监测站</option>
+                        <option value="station4">五缘湾湿地空气监测站</option>
+                        <option value="station5">枋湖工业片区空气质量监测站</option>
+                        <option value="station6">杏林湾新城空气监测站</option>
+                        <option value="station7">厦门北站交通枢纽监测站</option>
+                        <option value="station8">嵩屿码头空气监测站</option>
+                        <option value="station9">海沧生物医药园监测站</option>
+                        <option value="station10">同安工业集中区空气监测站</option>
+                        <option value="station11">翔安机场片区空气质量监测站</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label>时间类型：</label>
+                    <select id="timeType">
+                        <option value="hourly">小时平均</option>
+                        <option value="daily" selected>日平均</option>
+                        <option value="monthly">月平均</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label>数据类型：</label>
+                    <select id="dataType">
+                        <option value="original">原始监测数据</option>
+                        <option value="audited">审核数据</option>
+                        <option value="published">发布数据</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label>污染物：</label>
+                    <select id="pollutantSelect">
+                        <option value="PM25">PM2.5</option>
+                        <option value="PM10">PM10</option>
+                        <option value="O3_8h">O₃-8h</option>
+                        <option value="NO2">NO₂</option>
+                        <option value="SO2">SO₂</option>
+                        <option value="CO">CO</option>
+                        <option value="AQI">AQI</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label>开始时间：</label>
+                    <input type="date" id="startDate" value="2024-01-01">
+                </div>
+                <div class="filter-item">
+                    <label>结束时间：</label>
+                    <input type="date" id="endDate" value="2024-01-31">
+                </div>
+                <div class="filter-item">
+                    <input type="checkbox" id="includeBaseline" checked>
+                    <label for="includeBaseline">包含基准距平</label>
+                </div>
+                <button onclick="analyze()">分析</button>
+            </div>
+        </div>
+
+        <div class="chart-wrapper">
+            <div class="chart-title">时间距平分析结果</div>
+            <canvas id="anomalyChart"></canvas>
+            <div class="timeline-control">
+                <div class="timeline-slider-container">
+                    <div class="timeline-slider-track"></div>
+                    <div id="anomalyTimelineRange" class="timeline-slider-range"></div>
+                    <div id="anomalyTimelineHandleLeft" class="timeline-slider-handle"></div>
+                    <div id="anomalyTimelineHandleRight" class="timeline-slider-handle"></div>
+                </div>
+                <div class="timeline-labels">
+                    <span id="anomalyTimelineStart">开始</span>
+                    <span id="anomalyTimelineEnd">结束</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let anomalyChart;
+        let allData = [];
+        let baselineData = [];
+        let currentTimeRange = { start: 0, end: 100 };
+        let isDraggingLeft = false;
+        let isDraggingRight = false;
+
+        // 生成演示数据
+        function generateData(startDate, endDate, timeType) {
+            const data = [];
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            
+            if (timeType === 'monthly') {
+                // 按月生成
+                for (let d = new Date(start); d <= end; d.setMonth(d.getMonth() + 1)) {
+                    const year = d.getFullYear();
+                    const month = d.getMonth() + 1;
+                    const monthStr = `${year}-${String(month).padStart(2, '0')}`;
+                    
+                    const dayOfYear = Math.floor((d - new Date(year, 0, 0)) / 1000 / 60 / 60 / 24);
+                    const seasonalFactor = Math.sin(dayOfYear / 365 * Math.PI * 2);
+                    
+                    data.push({
+                        time: monthStr,
+                        date: new Date(year, month - 1, 1),
+                        PM25: Math.max(0, Math.round(45 + seasonalFactor * 25 + (Math.random() - 0.5) * 15)),
+                        PM10: Math.max(0, Math.round(70 + seasonalFactor * 35 + (Math.random() - 0.5) * 20)),
+                        O3_8h: Math.max(0, Math.round(80 + seasonalFactor * 40 + (Math.random() - 0.5) * 25)),
+                        NO2: Math.max(0, Math.round(30 + seasonalFactor * 15 + (Math.random() - 0.5) * 10)),
+                        SO2: Math.max(0, Math.round(15 + seasonalFactor * 8 + (Math.random() - 0.5) * 5)),
+                        CO: Math.max(0, Math.round((0.8 + seasonalFactor * 0.3 + (Math.random() - 0.5) * 0.2) * 10) / 10)
+                    });
+                }
+            } else if (timeType === 'daily') {
+                // 按日生成
+                for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                    const dateStr = d.toISOString().split('T')[0];
+                    const dayOfYear = Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24);
+                    const seasonalFactor = Math.sin(dayOfYear / 365 * Math.PI * 2);
+                    
+                    data.push({
+                        time: dateStr,
+                        date: new Date(d),
+                        PM25: Math.max(0, Math.round(45 + seasonalFactor * 25 + (Math.random() - 0.5) * 15)),
+                        PM10: Math.max(0, Math.round(70 + seasonalFactor * 35 + (Math.random() - 0.5) * 20)),
+                        O3_8h: Math.max(0, Math.round(80 + seasonalFactor * 40 + (Math.random() - 0.5) * 25)),
+                        NO2: Math.max(0, Math.round(30 + seasonalFactor * 15 + (Math.random() - 0.5) * 10)),
+                        SO2: Math.max(0, Math.round(15 + seasonalFactor * 8 + (Math.random() - 0.5) * 5)),
+                        CO: Math.max(0, Math.round((0.8 + seasonalFactor * 0.3 + (Math.random() - 0.5) * 0.2) * 10) / 10)
+                    });
+                }
+            } else {
+                // 按小时生成（采样）
+                for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                    const dateStr = d.toISOString().split('T')[0];
+                    // 每天采样6个点
+                    for (let h = 0; h < 24; h += 4) {
+                        const hour = String(h).padStart(2, '0');
+                        const timeStr = `${dateStr} ${hour}:00:00`;
+                        const dayOfYear = Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24);
+                        const seasonalFactor = Math.sin(dayOfYear / 365 * Math.PI * 2);
+                        const hourlyFactor = Math.sin(h / 24 * Math.PI * 2);
+                        
+                        data.push({
+                            time: timeStr,
+                            date: new Date(d),
+                            hour: h,
+                            PM25: Math.max(0, Math.round(45 + seasonalFactor * 25 + hourlyFactor * 10 + (Math.random() - 0.5) * 15)),
+                            PM10: Math.max(0, Math.round(70 + seasonalFactor * 35 + hourlyFactor * 15 + (Math.random() - 0.5) * 20)),
+                            O3_8h: Math.max(0, Math.round(80 + seasonalFactor * 40 + hourlyFactor * 20 + (Math.random() - 0.5) * 25)),
+                            NO2: Math.max(0, Math.round(30 + seasonalFactor * 15 + hourlyFactor * 8 + (Math.random() - 0.5) * 10)),
+                            SO2: Math.max(0, Math.round(15 + seasonalFactor * 8 + hourlyFactor * 3 + (Math.random() - 0.5) * 5)),
+                            CO: Math.max(0, Math.round((0.8 + seasonalFactor * 0.3 + hourlyFactor * 0.1 + (Math.random() - 0.5) * 0.2) * 10) / 10)
+                        });
+                    }
+                }
+            }
+            
+            return data;
+        }
+
+        // 计算距平值（相对于历史平均）
+        function calculateAnomaly(data, pollutant) {
+            // 计算历史平均值（使用前一年的数据作为基准）
+            const historicalAvg = calculateHistoricalAverage(data, pollutant);
+            
+            return data.map(item => {
+                const value = item[pollutant];
+                const anomaly = value - historicalAvg;
+                const anomalyPercent = historicalAvg > 0 ? (anomaly / historicalAvg) * 100 : 0;
+                return {
+                    ...item,
+                    value: value,
+                    anomaly: anomaly,
+                    anomalyPercent: anomalyPercent,
+                    historicalAvg: historicalAvg
+                };
+            });
+        }
+
+        function calculateHistoricalAverage(data, pollutant) {
+            // 简化处理：使用数据的前30%作为历史基准
+            const sampleSize = Math.max(1, Math.floor(data.length * 0.3));
+            const sample = data.slice(0, sampleSize);
+            const sum = sample.reduce((acc, item) => acc + item[pollutant], 0);
+            return sum / sample.length;
+        }
+
+        function analyze() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const timeType = document.getElementById('timeType').value;
+            const pollutant = document.getElementById('pollutantSelect').value;
+            const includeBaseline = document.getElementById('includeBaseline').checked;
+            
+            allData = generateData(startDate, endDate, timeType);
+            const anomalyData = calculateAnomaly(allData, pollutant);
+            
+            updateChart(anomalyData, pollutant, includeBaseline);
+        }
+
+        function updateChart(anomalyData, pollutant, includeBaseline) {
+            const ctx = document.getElementById('anomalyChart').getContext('2d');
+            
+            if (anomalyChart) {
+                anomalyChart.destroy();
+            }
+            
+            const filteredData = filterDataByRange(anomalyData);
+            const labels = filteredData.map(d => d.time);
+            
+            const datasets = [
+                {
+                    label: '距平值',
+                    data: filteredData.map(d => d.anomaly),
+                    backgroundColor: filteredData.map(d => d.anomaly >= 0 ? 'rgba(231, 76, 60, 0.6)' : 'rgba(52, 152, 219, 0.6)'),
+                    borderColor: filteredData.map(d => d.anomaly >= 0 ? 'rgba(231, 76, 60, 1)' : 'rgba(52, 152, 219, 1)'),
+                    borderWidth: 1
+                }
+            ];
+            
+            if (includeBaseline && filteredData.length > 0) {
+                datasets.push({
+                    label: '历史平均值',
+                    data: filteredData.map(d => d.historicalAvg),
+                    backgroundColor: 'rgba(149, 165, 166, 0.6)',
+                    borderColor: 'rgba(149, 165, 166, 1)',
+                    borderWidth: 1,
+                    type: 'line',
+                    tension: 0.1
+                });
+            }
+            
+            anomalyChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    height: 400,
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            title: { display: true, text: '距平值' },
+                            grid: {
+                                color: function(context) {
+                                    if (context.tick.value === 0) {
+                                        return 'rgba(0, 0, 0, 0.5)';
+                                    }
+                                    return 'rgba(0, 0, 0, 0.1)';
+                                }
+                            }
+                        },
+                        x: {
+                            title: { display: true, text: '时间' },
+                            ticks: { maxRotation: 45, minRotation: 45 }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: true, position: 'top' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const dataIndex = context.dataIndex;
+                                    const item = filteredData[dataIndex];
+                                    if (context.datasetIndex === 0) {
+                                        return [
+                                            `距平值: ${item.anomaly.toFixed(2)}`,
+                                            `距平百分比: ${item.anomalyPercent.toFixed(2)}%`,
+                                            `实际值: ${item.value.toFixed(2)}`,
+                                            `历史平均: ${item.historicalAvg.toFixed(2)}`
+                                        ];
+                                    }
+                                    return context.dataset.label + ': ' + context.parsed.y;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function filterDataByRange(data) {
+            const total = data.length;
+            const startIdx = Math.floor(total * currentTimeRange.start / 100);
+            const endIdx = Math.floor(total * currentTimeRange.end / 100);
+            return data.slice(startIdx, endIdx);
+        }
+
+        // 初始化时间轴滑块
+        function initTimelineSlider() {
+            const rangeElement = document.getElementById('anomalyTimelineRange');
+            const handleLeft = document.getElementById('anomalyTimelineHandleLeft');
+            const handleRight = document.getElementById('anomalyTimelineHandleRight');
+            const container = document.querySelector('.timeline-slider-container');
+            
+            // 更新滑块位置
+            function updateSliderPosition() {
+                const startPercent = currentTimeRange.start;
+                const endPercent = currentTimeRange.end;
+                
+                rangeElement.style.left = `${startPercent}%`;
+                rangeElement.style.width = `${endPercent - startPercent}%`;
+                handleLeft.style.left = `${startPercent}%`;
+                handleRight.style.left = `${endPercent}%`;
+                
+                // 更新标签
+                updateTimelineLabels();
+            }
+            
+            // 更新时间轴标签
+            function updateTimelineLabels() {
+                if (allData.length === 0) return;
+                
+                const startIdx = Math.floor(allData.length * currentTimeRange.start / 100);
+                const endIdx = Math.floor(allData.length * currentTimeRange.end / 100) - 1;
+                
+                const startLabel = document.getElementById('anomalyTimelineStart');
+                const endLabel = document.getElementById('anomalyTimelineEnd');
+                
+                if (startIdx >= 0 && startIdx < allData.length) {
+                    startLabel.textContent = allData[startIdx].time;
+                }
+                if (endIdx >= 0 && endIdx < allData.length) {
+                    endLabel.textContent = allData[endIdx].time;
+                }
+            }
+            
+            // 处理鼠标拖动
+            function handleDrag(event, isLeft) {
+                const rect = container.getBoundingClientRect();
+                const containerWidth = rect.width;
+                let percent = ((event.clientX - rect.left) / containerWidth) * 100;
+                percent = Math.max(0, Math.min(100, percent));
+                
+                if (isLeft) {
+                    currentTimeRange.start = Math.min(percent, currentTimeRange.end - 5);
+                } else {
+                    currentTimeRange.end = Math.max(percent, currentTimeRange.start + 5);
+                }
+                
+                updateSliderPosition();
+                
+                // 更新图表
+                const pollutant = document.getElementById('pollutantSelect').value;
+                const includeBaseline = document.getElementById('includeBaseline').checked;
+                const anomalyData = calculateAnomaly(allData, pollutant);
+                updateChart(anomalyData, pollutant, includeBaseline);
+            }
+            
+            // 鼠标按下事件
+            handleLeft.addEventListener('mousedown', () => {
+                isDraggingLeft = true;
+            });
+            
+            handleRight.addEventListener('mousedown', () => {
+                isDraggingRight = true;
+            });
+            
+            // 鼠标移动事件
+            document.addEventListener('mousemove', (event) => {
+                if (isDraggingLeft) {
+                    handleDrag(event, true);
+                } else if (isDraggingRight) {
+                    handleDrag(event, false);
+                }
+            });
+            
+            // 鼠标释放事件
+            document.addEventListener('mouseup', () => {
+                isDraggingLeft = false;
+                isDraggingRight = false;
+            });
+            
+            // 初始化位置
+            updateSliderPosition();
+        }
+        
+        // 退出登录函数
+        function logout() {
+            if (confirm('确定要退出登录吗？')) {
+                window.location.href = 'login.html';
+            }
+        }
+
+        // 初始化
+        window.onload = function() {
+            // 初始化用户菜单
+            const userAvatar = document.getElementById('userAvatar');
+            const userName = document.getElementById('userName');
+            
+            // 设置用户名首字母
+            const displayName = userName.textContent;
+            if (displayName) {
+                userAvatar.textContent = displayName.charAt(0);
+            }
+            
+            analyze();
+            
+            // 延迟初始化时间轴滑块，确保DOM已加载完成
+            setTimeout(initTimelineSlider, 500);
+        };
+    </script>
+</body>
+</html>
+

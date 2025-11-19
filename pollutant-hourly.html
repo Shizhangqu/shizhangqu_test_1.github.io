@@ -1,0 +1,1564 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>污染物小时分析</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: #f5f7fa;
+            padding: 0;
+        }
+        /* 顶部导航栏 */
+        .navbar {
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 0 30px;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 70px;
+        }
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #3498db;
+            font-size: 20px;
+            font-weight: 600;
+            text-decoration: none;
+        }
+        .nav-logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .nav-menu {
+            display: flex;
+            gap: 5px;
+            list-style: none;
+        }
+        .nav-menu > li {
+            position: relative;
+        }
+        .nav-menu > li > a {
+            display: block;
+            padding: 10px 20px;
+            color: #555;
+            text-decoration: none;
+            border-radius: 6px;
+            transition: all 0.3s;
+            font-size: 15px;
+            position: relative;
+        }
+        .nav-menu > li > a:hover {
+            background: #f0f0f0;
+            color: #3498db;
+        }
+        .nav-menu > li > a.active {
+            background: #3498db;
+            color: white;
+        }
+        .nav-menu > li.has-submenu > a::after {
+            content: '▼';
+            display: inline-block;
+            margin-left: 5px;
+            font-size: 10px;
+        }
+        /* 下拉菜单 */
+        .submenu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: white;
+            min-width: 180px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-radius: 6px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s;
+            z-index: 1000;
+            margin-top: 5px;
+            padding: 5px 0;
+        }
+        /* 用户菜单 */
+        .user-menu {
+            position: relative;
+            margin-left: 20px;
+        }
+        .user-menu-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: #f0f0f0;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+            color: #495057;
+        }
+        .user-menu-btn:hover {
+            background: #e9ecef;
+            border-color: #dee2e6;
+        }
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .user-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            min-width: 160px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-radius: 8px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s;
+            z-index: 1000;
+            margin-top: 8px;
+            padding: 8px 0;
+        }
+        .user-menu:hover .user-dropdown {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        .user-dropdown a {
+            display: block;
+            padding: 10px 16px;
+            color: #495057;
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .user-dropdown a:hover {
+            background: #f8f9fa;
+            color: #3498db;
+            padding-left: 20px;
+        }
+        .user-dropdown .divider {
+            height: 1px;
+            background: #e9ecef;
+            margin: 8px 0;
+        }
+        .nav-menu > li:hover .submenu {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        .submenu li {
+            list-style: none;
+        }
+        .submenu li a {
+            display: block;
+            padding: 10px 20px;
+            color: #555;
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .submenu li a:hover {
+            background: #f0f0f0;
+            color: #3498db;
+            padding-left: 25px;
+        }
+        .submenu li a.active {
+            background: #3498db;
+            color: white;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-top: 15px;
+            margin-bottom: 15px;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 8px;
+            font-size: 24px;
+        }
+        .filter-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        .filter-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        @media (max-width: 768px) {
+            .filter-row {
+                gap: 10px;
+            }
+            
+            .dropdown-multiselect {
+                min-width: 200px;
+            }
+        }
+        .filter-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        label {
+            font-weight: 600;
+            color: #555;
+            white-space: nowrap;
+            font-size: 13px;
+        }
+        select, input {
+            padding: 6px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+            min-width: 120px;
+        }
+        button {
+            padding: 8px 16px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        .chart-wrapper {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+        }
+        .chart-header {
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+        .chart-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        .chart-type-selector {
+            display: flex;
+            gap: 8px;
+        }
+        .chart-type-btn {
+            padding: 5px 10px;
+            background: #ecf0f1;
+            color: #2c3e50;
+            border: 1px solid #bdc3c7;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+        .chart-type-btn:hover {
+            background: #d5dbdb;
+        }
+        .chart-type-btn.active {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+        .station-selector {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        .station-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .city-selector {
+            margin-top: 10px;
+        }
+        /* 下拉多选框样式 */
+        .dropdown-multiselect {
+            position: relative;
+            min-width: 350px;
+            max-width: 450px;
+        }
+        
+        .dropdown-header {
+            padding: 8px 12px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+        }
+        
+        .dropdown-header:hover {
+            border-color: #3498db;
+        }
+        
+        .dropdown-arrow {
+            font-size: 10px;
+            transition: transform 0.3s;
+        }
+        
+        .dropdown-content {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%;
+            background: white;
+            border: 1px solid #ddd;
+            border-top: none;
+            border-radius: 0 0 4px 4px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: none;
+        }
+        
+        .dropdown-item {
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .dropdown-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .dropdown-item input[type="checkbox"] {
+            margin: 0;
+        }
+        
+        .dropdown-item label {
+            margin: 0;
+            font-weight: normal;
+            cursor: pointer;
+            width: 100%;
+        }
+        
+        .dropdown-divider {
+            height: 1px;
+            background-color: #e9ecef;
+            margin: 4px 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="nav-logo">
+                <div class="nav-logo-icon">AQ</div>
+                <span>空气质量分析服务系统</span>
+            </a>
+            <ul class="nav-menu">
+                <li><a href="index.html">首页</a></li>
+                <li><a href="air-quality-query.html">空气质量查询</a></li>
+                <li class="has-submenu">
+                    <a href="#">时空变化分析</a>
+                    <ul class="submenu">
+                        <li><a href="period-comparison.html">时段对比</a></li>
+                        <li><a href="station-comparison.html">站点对比</a></li>
+                        <li><a href="time-anomaly.html">时间距平</a></li>
+                    </ul>
+                </li>
+                <li class="has-submenu">
+                    <a href="#">污染物特征分析</a>
+                    <ul class="submenu">
+                        <li><a href="pollutant-correlation.html">污染物关联性分析</a></li>
+                        <li><a href="pollutant-calendar.html">污染物日历分析</a></li>
+                        <li><a href="pollutant-weekday.html">污染物星期分析</a></li>
+                        <li><a href="pollutant-hourly.html" class="active">污染物小时分析</a></li>
+                    </ul>
+                </li>
+                <li class="has-submenu">
+                    <a href="#">达标压力测算</a>
+                    <ul class="submenu">
+                        <li><a href="compliance-target.html">达标目标</a></li>
+                        <li><a href="compliance-analysis.html">达标分析</a></li>
+                    </ul>
+                </li>
+            </ul>
+            
+            <!-- 用户菜单 -->
+            <div class="user-menu" id="userMenu">
+                <div class="user-menu-btn">
+                    <div class="user-avatar" id="userAvatar">A</div>
+                    <span id="userName">管理员</span>
+                </div>
+                <div class="user-dropdown">
+                    <a href="profile.html">个人中心</a>
+                    <div class="divider"></div>
+                    <a href="#" onclick="logout()">退出登录</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <div class="container">
+        <h1>污染物小时分析</h1>
+        
+        <div class="filter-section">
+            <div class="filter-row">
+                <div class="filter-item">
+                    <label>分析模式：</label>
+                    <select id="analysisMode" onchange="changeAnalysisMode()">
+                        <option value="multi-station">多站点分析</option>
+                        <option value="multi-city">多城市分析</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label>污染物：</label>
+                    <select id="pollutantSelect">
+                        <option value="PM25">PM2.5</option>
+                        <option value="PM10">PM10</option>
+                        <option value="O3_8h">O₃-8h</option>
+                        <option value="NO2">NO₂</option>
+                        <option value="SO2">SO₂</option>
+                        <option value="CO">CO</option>
+                        <option value="AQI">AQI</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label>开始时间：</label>
+                    <input type="date" id="startDate" value="2024-01-01">
+                </div>
+                <div class="filter-item">
+                    <label>结束时间：</label>
+                    <input type="date" id="endDate" value="2024-01-31">
+                </div>
+            </div>
+            <div class="filter-row">
+                <div class="filter-item" id="stationSelector">
+                    <label>选择站点：</label>
+                    <div class="dropdown-multiselect">
+                        <div class="dropdown-header" onclick="toggleStationDropdown()">
+                            <span id="stationSelectedCount">选择站点...</span>
+                            <span class="dropdown-arrow">▼</span>
+                        </div>
+                        <div class="dropdown-content" id="stationDropdownContent">
+                            <div class="dropdown-item">
+                                <input type="checkbox" id="stationSelectAll" onchange="toggleStationSelectAll()">
+                                <label for="stationSelectAll">全选</label>
+                            </div>
+                            <div class="dropdown-divider"></div>
+                            <div id="stationList"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="filter-item" id="citySelector" style="display: none;">
+                    <label>选择区域：</label>
+                    <div class="dropdown-multiselect">
+                        <div class="dropdown-header" onclick="toggleCityDropdown()">
+                            <span id="citySelectedCount">选择区域...</span>
+                            <span class="dropdown-arrow">▼</span>
+                        </div>
+                        <div class="dropdown-content" id="cityDropdownContent">
+                            <div class="dropdown-item">
+                                <input type="checkbox" id="citySelectAll" onchange="toggleCitySelectAll()">
+                                <label for="citySelectAll">全选</label>
+                            </div>
+                            <div class="dropdown-divider"></div>
+                            <div id="cityList">
+                                <div class="dropdown-item">
+                                    <input type="checkbox" id="city_siming" value="siming" onchange="updateSelectedStations()">
+                                    <label for="city_siming">思明区</label>
+                                </div>
+                                <div class="dropdown-item">
+                                    <input type="checkbox" id="city_huli" value="huli" onchange="updateSelectedStations()">
+                                    <label for="city_huli">湖里区</label>
+                                </div>
+                                <div class="dropdown-item">
+                                    <input type="checkbox" id="city_jimei" value="jimei" onchange="updateSelectedStations()">
+                                    <label for="city_jimei">集美区</label>
+                                </div>
+                                <div class="dropdown-item">
+                                    <input type="checkbox" id="city_haicang" value="haicang" onchange="updateSelectedStations()">
+                                    <label for="city_haicang">海沧区</label>
+                                </div>
+                                <div class="dropdown-item">
+                                    <input type="checkbox" id="city_tongan" value="tongan" onchange="updateSelectedStations()">
+                                    <label for="city_tongan">同安区</label>
+                                </div>
+                                <div class="dropdown-item">
+                                    <input type="checkbox" id="city_xiangan" value="xiangan" onchange="updateSelectedStations()">
+                                    <label for="city_xiangan">翔安区</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <button onclick="queryData()">查询</button>
+            </div>
+        </div>
+
+
+
+        <div class="chart-wrapper">
+            <div class="chart-header">
+                <div class="chart-title" id="chartTitle">小时序范围图</div>
+                <button id="toggleHistorical" class="chart-type-btn" onclick="toggleHistoricalData()">历史同期</button>
+                <div class="chart-controls">
+                    <div class="chart-type-selector">
+                        <button class="chart-type-btn active" onclick="switchChartType('range')">小时序范围图</button>
+                        <button class="chart-type-btn" onclick="switchChartType('box')">小时序箱型图</button>
+                    </div>
+                </div>
+            </div>
+            <div id="hourlyChart" style="width: 100%; height: 600px;"></div>
+        </div>
+    </div>
+
+    <script>
+
+        // 全局变量
+        let chartType = 'range'; // 'range' 或 'box'
+        let analysisMode = 'multi-station'; // 'multi-station' 或 'multi-city'
+        let stations = [
+            { id: 'station1', name: '鼓浪屿海滨空气监测站' },
+            { id: 'station2', name: '莲前大道空气质量监测站' },
+            { id: 'station3', name: '筼筜湖生态监测站' },
+            { id: 'station4', name: '五缘湾湿地空气监测站' },
+            { id: 'station5', name: '枋湖工业片区空气质量监测站' },
+            { id: 'station6', name: '杏林湾新城空气监测站' },
+            { id: 'station7', name: '厦门北站交通枢纽监测站' },
+            { id: 'station8', name: '嵩屿码头空气监测站' },
+            { id: 'station9', name: '海沧生物医药园监测站' },
+            { id: 'station10', name: '同安工业集中区空气监测站' },
+            { id: 'station11', name: '翔安机场片区空气质量监测站' }
+        ];
+        let cities = [
+            { id: 'siming', name: '思明区' },
+            { id: 'huli', name: '湖里区' },
+            { id: 'jimei', name: '集美区' },
+            { id: 'haicang', name: '海沧区' },
+            { id: 'tongan', name: '同安区' },
+            { id: 'xiangan', name: '翔安区' }
+        ];
+        let selectedStations = [];
+        let allData = {}; // 存储所有站点的数据
+        let showHistorical = false; // 控制是否显示历史同期数据
+
+        // 分析模式切换功能
+        function changeAnalysisMode() {
+            const mode = document.getElementById('analysisMode').value;
+            analysisMode = mode;
+            
+            if (mode === 'multi-station') {
+                document.getElementById('stationSelector').style.display = 'block';
+                document.getElementById('citySelector').style.display = 'none';
+            } else {
+                document.getElementById('stationSelector').style.display = 'none';
+                document.getElementById('citySelector').style.display = 'block';
+            }
+            
+            // 更新选中的站点/城市
+            updateSelectedStations();
+        }
+
+        // 生成演示数据
+        function generateHourlyData(stationId, startDate, endDate, pollutant, isHistorical = false) {
+            const data = [];
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            
+            // 为不同站点/城市生成略有差异的数据
+            let offset = 0;
+            if (stationId.startsWith('station')) {
+                // 站点ID处理
+                offset = parseInt(stationId.replace('station', '')) * 3;
+            } else {
+                // 城市ID处理
+                const cityIndex = cities.findIndex(city => city.id === stationId);
+                if (cityIndex !== -1) {
+                    offset = cityIndex * 4;
+                }
+            }
+            const historicalOffset = isHistorical ? -5 : 0;
+            
+            for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                const dateStr = d.toISOString().split('T')[0];
+                
+                // 生成24小时数据
+                for (let h = 0; h < 24; h++) {
+                    // 模拟一天内的变化模式（早晚高峰）
+                    const hourFactor = Math.sin((h - 6) / 12 * Math.PI) * 0.3 + 0.7;
+                    const randomFactor = (Math.random() - 0.5) * 0.2;
+                    
+                    let value;
+                    // 根据用户要求调整各污染物的基准值和波动范围
+                    switch (pollutant) {
+                        case 'PM25':
+                            // PM2.5调整在12之间波动，上下波动不大于5
+                            value = 12 + (Math.random() - 0.5) * 10 + offset + historicalOffset;
+                            value = Math.max(0, Math.round(value));
+                            break;
+                        case 'PM10':
+                            // PM10调整在10之间波动，上下波动不大于10
+                            value = 10 + (Math.random() - 0.5) * 20 + offset + historicalOffset;
+                            value = Math.max(0, Math.round(value));
+                            break;
+                        case 'O3_8h':
+                            // O3-8h调整在10之间，上下变幅5
+                            value = 10 + (Math.random() - 0.5) * 10 + offset + historicalOffset;
+                            value = Math.max(0, Math.round(value));
+                            break;
+                        case 'O3':
+                            // O3调整在10之间，上下变幅5
+                            value = 10 + (Math.random() - 0.5) * 10 + offset + historicalOffset;
+                            value = Math.max(0, Math.round(value));
+                            break;
+                        case 'NO2':
+                            // NO2调整在1之间波动，上下变幅不超过1
+                            value = 1 + (Math.random() - 0.5) * 2 + offset + historicalOffset;
+                            value = Math.max(0, Math.round(value));
+                            break;
+                        case 'SO2':
+                            // SO2调整为1
+                            value = 1 + offset + historicalOffset;
+                            break;
+                        case 'CO':
+                            // CO调整在3之间波动，上下变幅1
+                            value = 3 + (Math.random() - 0.5) * 2 + offset + historicalOffset;
+                            value = Math.max(0, Math.round(value * 10) / 10);
+                            break;
+                        default:
+                            // 默认值
+                            value = 50 * hourFactor * (1 + randomFactor) + offset + historicalOffset;
+                            value = Math.max(0, Math.round(value));
+                    }
+                    
+                    data.push({
+                        date: dateStr,
+                        hour: h,
+                        value: value
+                    });
+                }
+            }
+            
+            return data;
+        }
+
+        function initStationSelector() {
+            const stationList = document.getElementById('stationList');
+            stationList.innerHTML = ''; // 清空现有选项
+            
+            // 添加所有站点选项并默认选中
+            stations.forEach(station => {
+                const checkbox = document.createElement('div');
+                checkbox.className = 'dropdown-item';
+                checkbox.innerHTML = `
+                    <input type="checkbox" id="station_${station.id}" value="${station.id}" checked onchange="updateSelectedStations()">
+                    <label for="station_${station.id}">${station.name}</label>
+                `;
+                stationList.appendChild(checkbox);
+            });
+            
+            // 初始化选择计数
+            updateStationSelectedCount();
+        }
+
+        function initCitySelector() {
+            // 重置所有选项为未选中状态
+            const cityCheckboxes = document.querySelectorAll('#cityList input[type="checkbox"]');
+            cityCheckboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            
+            // 默认选中所有城市
+            cityCheckboxes.forEach(checkbox => {
+                checkbox.checked = true;
+            });
+            
+            // 初始化选择计数
+            updateCitySelectedCount();
+        }
+        
+        // 站点下拉框切换显示/隐藏
+        function toggleStationDropdown() {
+            const dropdownContent = document.getElementById('stationDropdownContent');
+            dropdownContent.style.display = dropdownContent.style.display === 'block' ? 'none' : 'block';
+        }
+        
+        // 城市下拉框切换显示/隐藏
+        function toggleCityDropdown() {
+            const dropdownContent = document.getElementById('cityDropdownContent');
+            dropdownContent.style.display = dropdownContent.style.display === 'block' ? 'none' : 'block';
+        }
+        
+        // 点击页面其他地方关闭下拉框
+        document.addEventListener('click', function(event) {
+            const stationDropdown = document.getElementById('stationSelector');
+            const cityDropdown = document.getElementById('citySelector');
+            
+            if (stationDropdown && !stationDropdown.contains(event.target)) {
+                document.getElementById('stationDropdownContent').style.display = 'none';
+            }
+            
+            if (cityDropdown && !cityDropdown.contains(event.target)) {
+                document.getElementById('cityDropdownContent').style.display = 'none';
+            }
+        });
+        
+        // 站点全选切换
+        function toggleStationSelectAll() {
+            const selectAll = document.getElementById('stationSelectAll');
+            const checkboxes = document.querySelectorAll('#stationList input[type="checkbox"]');
+            
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = selectAll.checked;
+            });
+            
+            updateSelectedStations();
+            updateStationSelectedCount();
+        }
+        
+        // 城市全选切换
+        function toggleCitySelectAll() {
+            const selectAll = document.getElementById('citySelectAll');
+            const checkboxes = document.querySelectorAll('#cityList input[type="checkbox"]');
+            
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = selectAll.checked;
+            });
+            
+            updateSelectedStations();
+            updateCitySelectedCount();
+        }
+        
+        // 更新已选择站点数量显示
+        function updateStationSelectedCount() {
+            const checkboxes = document.querySelectorAll('#stationList input[type="checkbox"]:checked');
+            const selectedCount = document.getElementById('stationSelectedCount');
+            
+            if (checkboxes.length === 0) {
+                selectedCount.textContent = '选择站点...';
+            } else if (checkboxes.length === stations.length) {
+                selectedCount.textContent = '已选择：全选';
+                document.getElementById('stationSelectAll').checked = true;
+            } else {
+                selectedCount.textContent = `已选择：${checkboxes.length}个站点`;
+                document.getElementById('stationSelectAll').checked = false;
+            }
+        }
+        
+        // 更新已选择城市数量显示
+        function updateCitySelectedCount() {
+            const checkboxes = document.querySelectorAll('#cityList input[type="checkbox"]:checked');
+            const selectedCount = document.getElementById('citySelectedCount');
+            
+            if (checkboxes.length === 0) {
+                selectedCount.textContent = '选择区域...';
+            } else if (checkboxes.length === cities.length) {
+                selectedCount.textContent = '已选择：全选';
+                document.getElementById('citySelectAll').checked = true;
+            } else {
+                selectedCount.textContent = `已选择：${checkboxes.length}个区域`;
+                document.getElementById('citySelectAll').checked = false;
+            }
+        }
+
+        function updateSelectedStations() {
+            selectedStations = [];
+            
+            if (analysisMode === 'multi-station') {
+                // 多站点模式：获取选中的站点
+                const selectedCheckboxes = document.querySelectorAll('#stationList input[type="checkbox"]:checked');
+                selectedStations = Array.from(selectedCheckboxes).map(checkbox => checkbox.value);
+                
+                // 更新选择计数
+                updateStationSelectedCount();
+            } else {
+                // 多城市模式：获取选中的城市
+                const selectedCheckboxes = document.querySelectorAll('#cityList input[type="checkbox"]:checked');
+                selectedStations = Array.from(selectedCheckboxes).map(checkbox => checkbox.value);
+                
+                // 更新选择计数
+                updateCitySelectedCount();
+            }
+            
+            updateChart();
+        }
+
+        function switchChartType(type) {
+            chartType = type;
+            document.querySelectorAll('.chart-type-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            document.getElementById('chartTitle').textContent = type === 'range' ? '小时序范围图' : '小时序箱型图';
+            updateChart();
+        }
+
+        function queryData() {
+            const pollutant = document.getElementById('pollutantSelect').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            
+            // 清空之前的数据
+            allData = {};
+            
+            // 生成当前时段数据
+            selectedStations.forEach(sid => {
+                if (analysisMode === 'multi-station') {
+                    // 多站点模式
+                    allData[sid] = generateHourlyData(sid, startDate, endDate, pollutant, false);
+                    
+                    if (showHistorical) {
+                        const historicalStart = new Date(startDate);
+                        historicalStart.setFullYear(historicalStart.getFullYear() - 1);
+                        const historicalEnd = new Date(endDate);
+                        historicalEnd.setFullYear(historicalEnd.getFullYear() - 1);
+                        allData[sid + '_historical'] = generateHourlyData(
+                            sid, 
+                            historicalStart.toISOString().split('T')[0], 
+                            historicalEnd.toISOString().split('T')[0], 
+                            pollutant, 
+                            true
+                        );
+                    } else {
+                        delete allData[sid + '_historical'];
+                    }
+                } else {
+                    // 多城市模式
+                    allData[sid] = generateHourlyData(sid, startDate, endDate, pollutant, false);
+                    
+                    if (showHistorical) {
+                        const historicalStart = new Date(startDate);
+                        historicalStart.setFullYear(historicalStart.getFullYear() - 1);
+                        const historicalEnd = new Date(endDate);
+                        historicalEnd.setFullYear(historicalEnd.getFullYear() - 1);
+                        allData[sid + '_historical'] = generateHourlyData(
+                            sid, 
+                            historicalStart.toISOString().split('T')[0], 
+                            historicalEnd.toISOString().split('T')[0], 
+                            pollutant, 
+                            true
+                        );
+                    } else {
+                        delete allData[sid + '_historical'];
+                    }
+                }
+            });
+            
+            updateChart();
+        }
+
+        // 切换历史同期数据显示
+        function toggleHistoricalData() {
+            showHistorical = !showHistorical;
+            const toggleButton = document.getElementById('toggleHistorical');
+            if (showHistorical) {
+                toggleButton.classList.add('active');
+            } else {
+                toggleButton.classList.remove('active');
+            }
+            queryData();
+        }
+
+
+        
+        // 全局变量存储小时图表实例
+        let hourlyChart = null;
+        
+        // 移除resize事件监听器
+        function removeResizeListener() {
+            if (window.hourlyChartResizeHandler) {
+                window.removeEventListener('resize', window.hourlyChartResizeHandler);
+                window.hourlyChartResizeHandler = null;
+            }
+        }
+        
+        function updateChart() {
+            if (selectedStations.length === 0) return;
+            
+            const chartContainer = document.getElementById('hourlyChart');
+            
+            // 清除现有图表和事件监听器
+            if (hourlyChart) {
+                hourlyChart.dispose();
+                removeResizeListener();
+            }
+            
+            const pollutant = document.getElementById('pollutantSelect').value;
+            
+            // 初始化ECharts实例
+            hourlyChart = echarts.init(chartContainer);
+            
+            if (chartType === 'range') {
+                updateRangeChart(pollutant);
+            } else {
+                updateBoxChart(pollutant);
+            }
+            
+            // 响应式处理 - 确保只添加一个事件监听器
+            window.hourlyChartResizeHandler = function() {
+                if (hourlyChart && typeof hourlyChart.resize === 'function') {
+                    hourlyChart.resize();
+                }
+            };
+            window.addEventListener('resize', window.hourlyChartResizeHandler);
+        }
+
+        function updateRangeChart(pollutant) {
+            // 初始化小时标签数组
+            const hourLabels = Array.from({ length: 24 }, (_, i) => i + ':00');
+            
+            // 初始化当前时段最大值、最小值和平均值数组
+            const maxValues = new Array(24).fill(0);
+            const minValues = new Array(24).fill(Infinity);
+            const avgValues = new Array(24).fill(0);
+            const countValues = new Array(24).fill(0);
+            
+            // 初始化历史同期最大值、最小值和平均值数组
+            const historicalMaxValues = new Array(24).fill(0);
+            const historicalMinValues = new Array(24).fill(Infinity);
+            const historicalAvgValues = new Array(24).fill(0);
+            const historicalCountValues = new Array(24).fill(0);
+            
+            // 遍历所有选中站点的数据
+            selectedStations.forEach(sid => {
+                // 处理当前时段数据
+                const data = allData[sid];
+                if (data) {
+                    data.forEach(item => {
+                        const hour = item.hour;
+                        const value = item.value;
+                        
+                        // 更新最大值和最小值
+                        if (value > maxValues[hour]) maxValues[hour] = value;
+                        if (value < minValues[hour]) minValues[hour] = value;
+                        
+                        // 累加平均值计算所需的数据
+                        avgValues[hour] += value;
+                        countValues[hour]++;
+                    });
+                }
+                
+                // 处理历史同期数据
+                const historicalData = allData[sid + '_historical'];
+                if (historicalData) {
+                    historicalData.forEach(item => {
+                        const hour = item.hour;
+                        const value = item.value;
+                        
+                        // 更新历史最大值和最小值
+                        if (value > historicalMaxValues[hour]) historicalMaxValues[hour] = value;
+                        if (value < historicalMinValues[hour]) historicalMinValues[hour] = value;
+                        
+                        // 累加历史平均值计算所需的数据
+                        historicalAvgValues[hour] += value;
+                        historicalCountValues[hour]++;
+                    });
+                }
+            });
+            
+            // 计算当前时段平均值
+            for (let i = 0; i < 24; i++) {
+                if (countValues[i] > 0) {
+                    avgValues[i] = avgValues[i] / countValues[i];
+                } else {
+                    avgValues[i] = 0;
+                }
+                // 确保最小值不会是Infinity
+                if (minValues[i] === Infinity) {
+                    minValues[i] = 0;
+                }
+            }
+            
+            // 计算历史同期平均值
+            for (let i = 0; i < 24; i++) {
+                if (historicalCountValues[i] > 0) {
+                    historicalAvgValues[i] = historicalAvgValues[i] / historicalCountValues[i];
+                } else {
+                    historicalAvgValues[i] = 0;
+                }
+                // 确保历史最小值不会是Infinity
+                if (historicalMinValues[i] === Infinity) {
+                    historicalMinValues[i] = 0;
+                }
+            }
+            
+            // 构建图表系列数据
+            const series = [
+                {
+                    name: '最大值',
+                    type: 'line',
+                    data: maxValues,
+                    smooth: true,
+                    lineStyle: {
+                        color: '#e74c3c'
+                    },
+                    symbol: 'circle',
+                    symbolSize: 6
+                },
+                {
+                    name: '平均值',
+                    type: 'line',
+                    data: avgValues,
+                    smooth: true,
+                    lineStyle: {
+                        color: '#3498db'
+                    },
+                    symbol: 'circle',
+                    symbolSize: 6
+                },
+                {
+                    name: '最小值',
+                    type: 'line',
+                    data: minValues,
+                    smooth: true,
+                    lineStyle: {
+                        color: '#27ae60'
+                    },
+                    symbol: 'circle',
+                    symbolSize: 6
+                }
+            ];
+            
+            // 如果有历史同期数据，则添加历史同期系列
+            const hasHistoricalData = selectedStations.some(sid => allData[sid + '_historical']);
+            if (hasHistoricalData) {
+                series.push(
+                    {
+                        name: '历史最大值',
+                        type: 'line',
+                        data: historicalMaxValues,
+                        smooth: true,
+                        lineStyle: {
+                            color: '#e74c3c',
+                            type: 'dashed'
+                        },
+                        symbol: 'circle',
+                        symbolSize: 6
+                    },
+                    {
+                        name: '历史平均值',
+                        type: 'line',
+                        data: historicalAvgValues,
+                        smooth: true,
+                        lineStyle: {
+                            color: '#3498db',
+                            type: 'dashed'
+                        },
+                        symbol: 'circle',
+                        symbolSize: 6
+                    },
+                    {
+                        name: '历史最小值',
+                        type: 'line',
+                        data: historicalMinValues,
+                        smooth: true,
+                        lineStyle: {
+                            color: '#27ae60',
+                            type: 'dashed'
+                        },
+                        symbol: 'circle',
+                        symbolSize: 6
+                    }
+                );
+            }
+            
+            // 更新图例数据
+            const legendData = ['最大值', '平均值', '最小值'];
+            if (hasHistoricalData) {
+                legendData.push('历史最大值', '历史平均值', '历史最小值');
+            }
+            
+            // 获取图表容器
+            const chartContainer = document.getElementById('hourlyChart');
+            if (!hourlyChart) {
+                hourlyChart = echarts.init(chartContainer);
+            }
+            
+            // 设置echarts配置项
+            const option = {
+                title: {
+                    text: '污染物小时序范围图',
+                    left: 'center',
+                    top: 10,
+                    textStyle: {
+                        fontSize: 20,
+                        fontWeight: 'bold'
+                    }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    formatter: function(params) {
+                        let result = `${params[0].name}<br/>`;
+                        params.forEach(param => {
+                            result += `${param.marker} ${param.seriesName}: ${param.value.toFixed(2)}<br/>`;
+                        });
+                        return result;
+                    },
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    borderColor: '#ddd',
+                    borderWidth: 1,
+                    textStyle: {
+                        color: '#fff'
+                    },
+                    padding: 10
+                },
+                legend: {
+                    data: legendData,
+                    top: 40,
+                    left: 'center'
+                },
+                grid: {
+                    left: '10%',
+                    right: '10%',
+                    bottom: '15%',
+                    top: '15%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: hourLabels,
+                    name: '小时',
+                    nameLocation: 'middle',
+                    nameGap: 30,
+                    nameTextStyle: {
+                        fontSize: 14,
+                        fontWeight: 'bold'
+                    },
+                    axisLabel: {
+                        interval: 1,
+                        rotate: 45
+                    }
+                },
+                yAxis: {
+                    type: 'value',
+                    name: pollutant === 'O3_8h' ? 'O₃-8h (μg/m³)' : pollutant === 'PM25' ? 'PM2.5 (μg/m³)' : pollutant + ' (μg/m³)',
+                    nameLocation: 'middle',
+                    nameGap: 50,
+                    nameTextStyle: {
+                        fontSize: 14,
+                        fontWeight: 'bold'
+                    },
+                    min: 0
+                },
+                series: series
+            };
+            
+            // 设置图表配置
+            hourlyChart.setOption(option);
+        }
+
+        function updateBoxChart(pollutant) {
+            // 初始化小时标签数组
+            const hourLabels = Array.from({ length: 24 }, (_, i) => i + ':00');
+            
+            // 初始化当前时段箱形图数据数组
+            const boxData = [];
+            
+            // 初始化历史同期箱形图数据数组
+            const historicalBoxData = [];
+            
+            // 初始化当前时段平均值数组
+            const avgValues = new Array(24).fill(0);
+            const countValues = new Array(24).fill(0);
+            
+            // 初始化历史同期平均值数组
+            const historicalAvgValues = new Array(24).fill(0);
+            const historicalCountValues = new Array(24).fill(0);
+            
+            // 遍历24个小时
+            for (let hour = 0; hour < 24; hour++) {
+                // 处理当前时段数据
+                const values = [];
+                selectedStations.forEach(sid => {
+                    const data = allData[sid];
+                    if (data) {
+                        data.forEach(item => {
+                            if (item.hour === hour) {
+                                values.push(item.value);
+                            }
+                        });
+                    }
+                });
+                
+                // 如果没有数据，则添加空数组
+                if (values.length === 0) {
+                    boxData.push([]);
+                } else {
+                    // 对数据进行排序
+                    values.sort((a, b) => a - b);
+                    
+                    // 计算箱形图的五个统计值
+                    const min = values[0];
+                    const max = values[values.length - 1];
+                    const q1 = quantile(values, 0.25);
+                    const q3 = quantile(values, 0.75);
+                    const median = quantile(values, 0.5);
+                    
+                    // 根据污染物类型调整数值
+                    let multiplier = 1;
+                    if (pollutant === 'O3_8h') {
+                        multiplier = 2;
+                    } else if (pollutant === 'PM25') {
+                        multiplier = 1.5;
+                    }
+                    
+                    // 添加箱形图数据
+                    boxData.push([
+                        hour, 
+                        min * multiplier, 
+                        q1 * multiplier, 
+                        median * multiplier, 
+                        q3 * multiplier, 
+                        max * multiplier
+                    ]);
+                }
+                
+                // 处理历史同期数据
+                const historicalValues = [];
+                selectedStations.forEach(sid => {
+                    const historicalData = allData[sid + '_historical'];
+                    if (historicalData) {
+                        historicalData.forEach(item => {
+                            if (item.hour === hour) {
+                                historicalValues.push(item.value);
+                            }
+                        });
+                    }
+                });
+                
+                // 如果没有历史数据，则添加空数组
+                if (historicalValues.length === 0) {
+                    historicalBoxData.push([]);
+                } else {
+                    // 对历史数据进行排序
+                    historicalValues.sort((a, b) => a - b);
+                    
+                    // 计算历史箱形图的五个统计值
+                    const historicalMin = historicalValues[0];
+                    const historicalMax = historicalValues[historicalValues.length - 1];
+                    const historicalQ1 = quantile(historicalValues, 0.25);
+                    const historicalQ3 = quantile(historicalValues, 0.75);
+                    const historicalMedian = quantile(historicalValues, 0.5);
+                    
+                    // 根据污染物类型调整数值
+                    let multiplier = 1;
+                    if (pollutant === 'O3_8h') {
+                        multiplier = 2;
+                    } else if (pollutant === 'PM25') {
+                        multiplier = 1.5;
+                    }
+                    
+                    // 添加历史箱形图数据
+                    historicalBoxData.push([
+                        hour, 
+                        historicalMin * multiplier, 
+                        historicalQ1 * multiplier, 
+                        historicalMedian * multiplier, 
+                        historicalQ3 * multiplier, 
+                        historicalMax * multiplier
+                    ]);
+                }
+            }
+            
+            // 计算当前时段平均值
+            selectedStations.forEach(sid => {
+                const data = allData[sid];
+                if (data) {
+                    data.forEach(item => {
+                        const hour = item.hour;
+                        const value = item.value;
+                        avgValues[hour] += value;
+                        countValues[hour]++;
+                    });
+                }
+            });
+            
+            for (let i = 0; i < 24; i++) {
+                if (countValues[i] > 0) {
+                    avgValues[i] = avgValues[i] / countValues[i];
+                } else {
+                    avgValues[i] = 0;
+                }
+            }
+            
+            // 计算历史同期平均值
+            selectedStations.forEach(sid => {
+                const historicalData = allData[sid + '_historical'];
+                if (historicalData) {
+                    historicalData.forEach(item => {
+                        const hour = item.hour;
+                        const value = item.value;
+                        historicalAvgValues[hour] += value;
+                        historicalCountValues[hour]++;
+                    });
+                }
+            });
+            
+            for (let i = 0; i < 24; i++) {
+                if (historicalCountValues[i] > 0) {
+                    historicalAvgValues[i] = historicalAvgValues[i] / historicalCountValues[i];
+                } else {
+                    historicalAvgValues[i] = 0;
+                }
+            }
+            
+            // 根据污染物类型调整平均值
+            if (pollutant === 'O3_8h') {
+                for (let i = 0; i < 24; i++) {
+                    avgValues[i] *= 2;
+                    historicalAvgValues[i] *= 2;
+                }
+            } else if (pollutant === 'PM25') {
+                for (let i = 0; i < 24; i++) {
+                    avgValues[i] *= 1.5;
+                    historicalAvgValues[i] *= 1.5;
+                }
+            }
+            
+            // 构建图表系列数据
+            const series = [
+                {
+                    name: '箱形图',
+                    type: 'boxplot',
+                    data: boxData,
+                    itemStyle: {
+                        color: '#5470C6',
+                        borderColor: '#5470C6'
+                    },
+                    emphasis: {
+                        itemStyle: {
+                            color: '#91CC75'
+                        }
+                    }
+                },
+                {
+                    name: '平均值',
+                    type: 'line',
+                    data: avgValues,
+                    smooth: true,
+                    lineStyle: {
+                        color: '#3498db',
+                        width: 3
+                    },
+                    symbol: 'circle',
+                    symbolSize: 8,
+                    showSymbol: true
+                }
+            ];
+            
+            // 如果有历史同期数据，则添加历史箱形图系列和历史平均值
+            const hasHistoricalData = selectedStations.some(sid => allData[sid + '_historical']);
+            if (hasHistoricalData) {
+                series.push({
+                    name: '历史箱形图',
+                    type: 'boxplot',
+                    data: historicalBoxData,
+                    itemStyle: {
+                        color: 'rgba(231, 76, 60, 0.7)',
+                        borderColor: '#c0392b'
+                    },
+                    emphasis: {
+                        itemStyle: {
+                            color: '#E1BEE7'
+                        }
+                    }
+                },
+                {
+                    name: '历史平均值',
+                    type: 'line',
+                    data: historicalAvgValues,
+                    smooth: true,
+                    lineStyle: {
+                        color: '#3498db',
+                        width: 3,
+                        type: 'dashed'
+                    },
+                    symbol: 'circle',
+                    symbolSize: 8,
+                    showSymbol: true
+                });
+            }
+            
+            // 更新图例数据
+            const legendData = ['箱形图', '平均值'];
+            if (hasHistoricalData) {
+                legendData.push('历史箱形图', '历史平均值');
+            }
+            
+            // 设置echarts配置项
+            const option = {
+                title: {
+                    text: '污染物小时分布箱形图',
+                    left: 'center',
+                    top: 10,
+                    textStyle: {
+                        fontSize: 20,
+                        fontWeight: 'bold'
+                    }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    formatter: function(params) {
+                        let result = `${params[0].name}<br/>`;
+                        params.forEach(param => {
+                            if (param.seriesType === 'boxplot') {
+                                const data = param.data;
+                                result += `${param.marker} ${param.seriesName}<br/>`;
+                                result += `&nbsp;&nbsp;最小值: ${data[1].toFixed(2)}<br/>`;
+                                result += `&nbsp;&nbsp;25%分位数: ${data[2].toFixed(2)}<br/>`;
+                                result += `&nbsp;&nbsp;中位数: ${data[3].toFixed(2)}<br/>`;
+                                result += `&nbsp;&nbsp;75%分位数: ${data[4].toFixed(2)}<br/>`;
+                                result += `&nbsp;&nbsp;最大值: ${data[5].toFixed(2)}<br/>`;
+                            } else {
+                                result += `${param.marker} ${param.seriesName}: ${param.value.toFixed(2)}<br/>`;
+                            }
+                        });
+                        return result;
+                    },
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    borderColor: '#ddd',
+                    borderWidth: 1,
+                    textStyle: {
+                        color: '#fff'
+                    },
+                    padding: 10
+                },
+                legend: {
+                    data: legendData,
+                    top: 40,
+                    left: 'center'
+                },
+                grid: {
+                    left: '10%',
+                    right: '10%',
+                    bottom: '15%',
+                    top: '15%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: hourLabels,
+                    name: '小时',
+                    nameLocation: 'middle',
+                    nameGap: 30,
+                    nameTextStyle: {
+                        fontSize: 14,
+                        fontWeight: 'bold'
+                    },
+                    axisLabel: {
+                        interval: 1,
+                        rotate: 45
+                    }
+                },
+                yAxis: {
+                    type: 'value',
+                    name: pollutant === 'O3_8h' ? 'O₃-8h (μg/m³)' : pollutant === 'PM25' ? 'PM2.5 (μg/m³)' : pollutant + ' (μg/m³)',
+                    nameLocation: 'middle',
+                    nameGap: 50,
+                    nameTextStyle: {
+                        fontSize: 14,
+                        fontWeight: 'bold'
+                    },
+                    min: function(value) {
+                        return Math.max(0, value.min * 0.9);
+                    },
+                    axisLabel: {
+                        formatter: function(value) {
+                            return value.toFixed(1);
+                        }
+                    }
+                },
+                series: series
+            };
+            
+            // 设置图表配置
+            hourlyChart.setOption(option);
+        }
+
+        // 分位数计算函数
+        function quantile(arr, q) {
+            const sorted = arr.slice().sort((a, b) => a - b);
+            const pos = (sorted.length - 1) * q;
+            const base = Math.floor(pos);
+            const rest = pos - base;
+            if (sorted[base + 1] !== undefined) {
+                return sorted[base] + rest * (sorted[base + 1] - sorted[base]);
+            } else {
+                return sorted[base];
+            }
+        }
+
+        function logout() {
+            // 模拟退出登录
+            alert('您已退出登录');
+            window.location.href = 'login.html';
+        }
+        
+        // 初始化
+        window.onload = function() {
+            // 初始化站点和城市选择器
+            initStationSelector();
+            initCitySelector();
+            updateSelectedStations();
+            queryData();
+        };
+    </script>
+</body>
+</html>
+

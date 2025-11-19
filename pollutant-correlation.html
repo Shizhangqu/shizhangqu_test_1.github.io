@@ -1,0 +1,1415 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>污染物关联性分析</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: #f5f7fa;
+            padding: 0;
+        }
+        /* 顶部导航栏 */
+        .navbar {
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 0 30px;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 70px;
+        }
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #3498db;
+            font-size: 20px;
+            font-weight: 600;
+            text-decoration: none;
+        }
+        .nav-logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .nav-menu {
+            display: flex;
+            gap: 5px;
+            list-style: none;
+        }
+        .nav-menu > li {
+            position: relative;
+        }
+        .nav-menu > li > a {
+            display: block;
+            padding: 10px 20px;
+            color: #555;
+            text-decoration: none;
+            border-radius: 6px;
+            transition: all 0.3s;
+            font-size: 15px;
+            position: relative;
+        }
+        .nav-menu > li > a:hover {
+            background: #f0f0f0;
+            color: #3498db;
+        }
+        .nav-menu > li > a.active {
+            background: #3498db;
+            color: white;
+        }
+        .nav-menu > li.has-submenu > a::after {
+            content: '▼';
+            display: inline-block;
+            margin-left: 5px;
+            font-size: 10px;
+        }
+        /* 下拉菜单 */
+        .submenu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: white;
+            min-width: 180px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-radius: 6px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s;
+            z-index: 1000;
+            margin-top: 5px;
+            padding: 5px 0;
+        }
+        .nav-menu > li:hover .submenu {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        .submenu li {
+            list-style: none;
+        }
+        .submenu li a {
+            display: block;
+            padding: 10px 20px;
+            color: #555;
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .submenu li a:hover {
+            background: #f0f0f0;
+            color: #3498db;
+            padding-left: 25px;
+        }
+        .submenu li a.active {
+            background: #3498db;
+            color: white;
+        }
+        /* 用户菜单 */
+        .user-menu {
+            position: relative;
+            margin-left: 20px;
+        }
+        .user-menu-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: #f0f0f0;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+            color: #495057;
+        }
+        .user-menu-btn:hover {
+            background: #e9ecef;
+            border-color: #dee2e6;
+        }
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .user-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            min-width: 160px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-radius: 8px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s;
+            z-index: 1000;
+            margin-top: 8px;
+            padding: 8px 0;
+        }
+        .user-menu:hover .user-dropdown {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        .user-dropdown a {
+            display: block;
+            padding: 10px 16px;
+            color: #495057;
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .user-dropdown a:hover {
+            background: #f8f9fa;
+            color: #3498db;
+            padding-left: 20px;
+        }
+        .user-dropdown .divider {
+            height: 1px;
+            background: #e9ecef;
+            margin: 8px 0;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-top: 15px;
+            margin-bottom: 15px;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 8px;
+            font-size: 24px;
+        }
+        .filter-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        .filter-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .filter-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        label {
+            font-weight: 600;
+            color: #555;
+            white-space: nowrap;
+            font-size: 13px;
+        }
+        select, input {
+            padding: 6px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+            min-width: 120px;
+        }
+        button {
+            padding: 8px 16px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        /* 下拉多选框样式 */
+        .dropdown-multiselect {
+            position: relative;
+            min-width: 350px;
+            max-width: 500px;
+            margin-top: 15px;
+        }
+        
+        .dropdown-header {
+            padding: 8px 12px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+        }
+        
+        .dropdown-header:hover {
+            border-color: #3498db;
+        }
+        
+        .dropdown-arrow {
+            font-size: 10px;
+            transition: transform 0.3s;
+        }
+        
+        .dropdown-content {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 350px;
+            background: white;
+            border: 1px solid #ddd;
+            border-top: none;
+            border-radius: 0 0 4px 4px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .dropdown-item {
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .dropdown-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .dropdown-item input[type="checkbox"] {
+            margin: 0;
+        }
+        
+        .dropdown-item label {
+            margin: 0;
+            font-weight: normal;
+            cursor: pointer;
+        }
+        
+        .dropdown-divider {
+            height: 1px;
+            background-color: #e9ecef;
+            margin: 4px 0;
+        }
+        .chart-wrapper {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+        }
+        .chart-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        .view-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        .tab {
+            padding: 8px 16px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            color: #7f8c8d;
+            font-size: 13px;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+        }
+        .tab.active {
+            color: #3498db;
+            border-bottom-color: #3498db;
+            font-weight: 600;
+        }
+        .correlation-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .correlation-table th, .correlation-table td {
+            padding: 12px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+        .correlation-table th {
+            background: #3498db;
+            color: white;
+            font-weight: 600;
+        }
+        .correlation-table td {
+            background: white;
+        }
+        .correlation-value {
+            font-weight: 600;
+        }
+        .high-correlation {
+            background: #e74c3c !important;
+            color: white;
+        }
+        .medium-correlation {
+            background: #f39c12 !important;
+            color: white;
+        }
+        .low-correlation {
+            background: #3498db !important;
+            color: white;
+        }
+        /* 时间轴控制 */
+        .timeline-control {
+            margin-top: 8px;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+        .timeline-slider-container {
+            position: relative;
+            width: 100%;
+            height: 6px;
+            margin: 4px 0;
+        }
+        .timeline-slider-track {
+            position: absolute;
+            width: 100%;
+            height: 6px;
+            background: #ddd;
+            border-radius: 3px;
+        }
+        .timeline-slider-range {
+            position: absolute;
+            height: 6px;
+            background: #3498db;
+            border-radius: 3px;
+        }
+        .timeline-slider-handle {
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            background: #3498db;
+            border: 2px solid white;
+            border-radius: 50%;
+            top: -5px;
+            cursor: pointer;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        .timeline-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 4px;
+            color: #555;
+            font-size: 12px;
+        }
+        .export-buttons {
+            margin-top: 15px;
+            display: flex;
+            gap: 8px;
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="nav-logo">
+                <div class="nav-logo-icon">AQ</div>
+                <span>空气质量分析服务系统</span>
+            </a>
+            <ul class="nav-menu">
+                <li><a href="index.html">首页</a></li>
+                <li><a href="air-quality-query.html">空气质量查询</a></li>
+                <li class="has-submenu">
+                    <a href="#">时空变化分析</a>
+                    <ul class="submenu">
+                        <li><a href="period-comparison.html">时段对比</a></li>
+                        <li><a href="station-comparison.html">站点对比</a></li>
+                        <li><a href="time-anomaly.html">时间距平</a></li>
+                    </ul>
+                </li>
+                <li class="has-submenu">
+                    <a href="#">污染物特征分析</a>
+                    <ul class="submenu">
+                        <li><a href="pollutant-correlation.html" class="active">污染物关联性分析</a></li>
+                        <li><a href="pollutant-calendar.html">污染物日历分析</a></li>
+                        <li><a href="pollutant-weekday.html">污染物星期分析</a></li>
+                        <li><a href="pollutant-hourly.html">污染物小时分析</a></li>
+                    </ul>
+                </li>
+                <li class="has-submenu">
+                    <a href="#">达标压力测算</a>
+                    <ul class="submenu">
+                        <li><a href="compliance-target.html">达标目标</a></li>
+                        <li><a href="compliance-analysis.html">达标分析</a></li>
+                    </ul>
+                </li>
+            </ul>
+            
+            <!-- 用户菜单 -->
+            <div class="user-menu" id="userMenu">
+                <div class="user-menu-btn">
+                    <div class="user-avatar" id="userAvatar">A</div>
+                    <span id="userName">管理员</span>
+                </div>
+                <div class="user-dropdown">
+                    <a href="profile.html">个人中心</a>
+                    <div class="divider"></div>
+                    <a href="#" onclick="logout()">退出登录</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <div class="container">
+        <h1>污染物关联性分析</h1>
+        
+        <div class="filter-section">
+            <div class="filter-row">
+                <div class="filter-item">
+                    <label>站点：</label>
+                    <select id="stationSelect">
+                        <option value="station1">鼓浪屿海滨空气监测站</option>
+                        <option value="station2">莲前大道空气质量监测站</option>
+                        <option value="station3">筼筜湖生态监测站</option>
+                        <option value="station4">五缘湾湿地空气监测站</option>
+                        <option value="station5">枋湖工业片区空气质量监测站</option>
+                        <option value="station6">杏林湾新城空气监测站</option>
+                        <option value="station7">厦门北站交通枢纽监测站</option>
+                        <option value="station8">嵩屿码头空气监测站</option>
+                        <option value="station9">海沧生物医药园监测站</option>
+                        <option value="station10">同安工业集中区空气监测站</option>
+                        <option value="station11">翔安机场片区空气质量监测站</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label>时间类型：</label>
+                    <select id="timeType">
+                        <option value="hourly">小时平均</option>
+                        <option value="daily">日平均</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label>开始时间：</label>
+                    <input type="date" id="startDate" value="2024-01-01">
+                </div>
+                <div class="filter-item">
+                    <label>结束时间：</label>
+                    <input type="date" id="endDate" value="2024-01-31">
+                </div>
+                <div class="filter-item">
+                    <input type="checkbox" id="historicalPeriod" onchange="updateAnalysis()">
+                    <label for="historicalPeriod">添加历史同期数据</label>
+                </div>
+                <button onclick="analyze()">分析</button>
+            </div>
+            <div style="display: flex; align-items: center; gap: 15px; margin-top: 10px;">
+              <label style="white-space: nowrap; margin-bottom: 0; vertical-align: middle; line-height: 10px;">污染因子选择：</label>
+              <div class="dropdown-multiselect">
+                <div class="dropdown-header" onclick="togglePollutantDropdown()">
+                    <span id="selectedPollutantsText">选择污染物...</span>
+                    <span class="dropdown-arrow">▼</span>
+                </div>
+                <div class="dropdown-content" id="pollutantDropdownContent" style="display: none;">
+                    <div class="dropdown-item">
+                        <input type="checkbox" id="selectAllPollutants" onchange="toggleSelectAllPollutants()">
+                        <label for="selectAllPollutants">全选</label>
+                    </div>
+                    <div class="dropdown-divider"></div>
+                    <div id="pollutantSelector"></div>
+                </div>
+              </div>
+            </div>
+            </div>
+            <div class="chart-wrapper">
+            <div class="view-tabs">
+                <button class="tab active" onclick="switchView('table')">表格分析</button>
+                <button class="tab" onclick="switchView('matrix')">矩阵图分析</button>
+                <button class="tab" onclick="switchView('line')">折线图分析</button>
+                <button class="tab" onclick="switchView('scatter')">散点图分析</button>
+            </div>
+
+            <div id="tableView" class="view-content">
+                <div class="chart-title">相关性系数表格</div>
+                <div class="filter-row" style="margin-bottom: 20px;">
+                    <div class="filter-item">
+                        <label>基准因子：</label>
+                        <select id="basePollutant" onchange="updateTableView()">
+                            <option value="PM25">PM2.5</option>
+                            <option value="PM10">PM10</option>
+                            <option value="O3_8h">O₃-8h</option>
+                            <option value="NO2">NO₂</option>
+                            <option value="SO2">SO₂</option>
+                            <option value="CO">CO</option>
+                            <option value="AQI">AQI</option>
+                        </select>
+                    </div>
+                </div>
+                <table class="correlation-table" id="correlationTable"></table>
+            </div>
+
+            <div id="matrixView" class="view-content" style="display: none;">
+                <div class="chart-title">相关性矩阵图</div>
+                <table class="correlation-table" id="matrixCorrelationTable"></table>
+            </div>
+
+            <div id="lineView" class="view-content" style="display: none;">
+                <div class="chart-title">污染物时间序列对比</div>
+                <canvas id="lineChart"></canvas>
+                <div class="timeline-control">
+                    <label>时间轴调整：</label>
+                    <div class="timeline-slider-container">
+                        <div class="timeline-slider-track"></div>
+                        <div id="timelineRange" class="timeline-slider-range"></div>
+                        <div id="timelineHandleLeft" class="timeline-slider-handle"></div>
+                        <div id="timelineHandleRight" class="timeline-slider-handle"></div>
+                    </div>
+                    <div class="timeline-labels">
+                        <span id="timelineStart">开始</span>
+                        <span id="timelineEnd">结束</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="scatterView" class="view-content" style="display: none;">
+                <div class="chart-title">散点图分析</div>
+                <div class="filter-row">
+                    <div class="filter-item">
+                        <label>X轴污染物：</label>
+                        <select id="scatterX" onchange="updateScatterChart()"></select>
+                    </div>
+                    <div class="filter-item">
+                        <label>Y轴污染物：</label>
+                        <select id="scatterY" onchange="updateScatterChart()"></select>
+                    </div>
+                </div>
+                <canvas id="scatterChart"></canvas>
+            </div>
+        </div>
+
+        <div class="export-buttons">
+            <button onclick="exportImage()">导出图片</button>
+            <button onclick="exportCSV()">导出CSV</button>
+        </div>
+    </div>
+
+    <script>
+        let matrixChart, lineChart, scatterChart;
+        let allData = [];
+        let correlationMatrix = {};
+        let selectedPollutants = [];
+        let currentView = 'table';
+        let currentTimeRange = { start: 0, end: 100 };
+        let isDragging = false;
+        let activeHandle = null;
+
+        const pollutants = [
+            { id: 'AQI', name: 'AQI' },
+            { id: 'PM25', name: 'PM2.5' },
+            { id: 'PM10', name: 'PM10' },
+            { id: 'O3_8h', name: 'O₃-8h' },
+            { id: 'NO2', name: 'NO₂' },
+            { id: 'SO2', name: 'SO₂' },
+            { id: 'CO', name: 'CO' },
+            { id: 'PM25_PM10', name: 'PM2.5/PM10' }
+        ];
+
+        // 生成演示数据
+        function generateData(startDate, endDate, timeType, includeHistorical = false, stationOffset = 0) {
+            let data = [];
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            
+            if (timeType === 'daily') {
+                for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                    const dateStr = d.toISOString().split('T')[0];
+                    const dayOfYear = Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24);
+                    const seasonalFactor = Math.sin(dayOfYear / 365 * Math.PI * 2);
+                    
+                    // 根据用户要求调整各污染物的基准值和波动范围
+                    data.push({
+                        date: dateStr,
+                        // PM2.5调整在12±5之间波动
+                        PM25: Math.max(0, Math.round(12 + (Math.random() - 0.5) * 10 + stationOffset)),
+                        // PM10调整在10±10之间波动
+                        PM10: Math.max(0, Math.round(10 + (Math.random() - 0.5) * 20 + stationOffset * 0.5)),
+                        // O3-8h调整在10±5之间波动
+                        O3_8h: Math.max(0, Math.round(10 + (Math.random() - 0.5) * 10 + stationOffset)),
+                        // NO2调整在1±1之间波动
+                        NO2: Math.max(0, Math.round(1 + (Math.random() - 0.5) * 2 + stationOffset * 0.7)),
+                        // SO2固定为1
+                        SO2: 1,
+                        // CO调整在3±1之间波动
+                        CO: Math.max(0, Math.round((3 + (Math.random() - 0.5) * 2) * 10) / 10),
+                        AQI: 0
+                    });
+                }
+            } else {
+                // 小时数据（采样）
+                for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                    const dateStr = d.toISOString().split('T')[0];
+                    for (let h = 0; h < 24; h += 2) {
+                        const hour = String(h).padStart(2, '0');
+                        const timeStr = `${dateStr} ${hour}:00:00`;
+                        const dayOfYear = Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24);
+                        const seasonalFactor = Math.sin(dayOfYear / 365 * Math.PI * 2);
+                        const hourlyFactor = Math.sin(h / 24 * Math.PI * 2);
+                        
+                        // 根据用户要求调整各污染物的基准值和波动范围
+                        data.push({
+                            date: dateStr,
+                            time: timeStr,
+                            hour: h,
+                            // PM2.5调整在12±5之间波动
+                            PM25: Math.max(0, Math.round(12 + (Math.random() - 0.5) * 10 + stationOffset)),
+                            // PM10调整在10±10之间波动
+                            PM10: Math.max(0, Math.round(10 + (Math.random() - 0.5) * 20 + stationOffset * 0.5)),
+                            // O3-8h调整在10±5之间波动
+                            O3_8h: Math.max(0, Math.round(10 + (Math.random() - 0.5) * 10 + stationOffset)),
+                            // NO2调整在1±1之间波动
+                            NO2: Math.max(0, Math.round(1 + (Math.random() - 0.5) * 2 + stationOffset * 0.7)),
+                            // SO2固定为1
+                            SO2: 1,
+                            // CO调整在3±1之间波动
+                            CO: Math.max(0, Math.round((3 + (Math.random() - 0.5) * 2) * 10) / 10),
+                            AQI: 0
+                        });
+                    }
+                }
+            }
+            
+            // 计算AQI和PM2.5/PM10
+            data.forEach(item => {
+                const aqi = Math.max(
+                    calculateAQI(item.PM25, 'PM25'),
+                    calculateAQI(item.PM10, 'PM10'),
+                    calculateAQI(item.O3_8h, 'O3'),
+                    calculateAQI(item.NO2, 'NO2'),
+                    calculateAQI(item.SO2, 'SO2'),
+                    calculateAQI(item.CO, 'CO')
+                );
+                item.AQI = Math.round(aqi);
+                item.PM25_PM10 = item.PM10 > 0 ? (item.PM25 / item.PM10).toFixed(3) : 0;
+            });
+            
+            // 如果需要历史同期数据，添加去年同期数据并混合
+            if (includeHistorical) {
+                const historicalData = [];
+                const historicalStart = new Date(start);
+                const historicalEnd = new Date(end);
+                historicalStart.setFullYear(historicalStart.getFullYear() - 1);
+                historicalEnd.setFullYear(historicalEnd.getFullYear() - 1);
+                
+                // 生成历史同期数据
+                if (timeType === 'daily') {
+                    for (let d = new Date(historicalStart); d <= historicalEnd; d.setDate(d.getDate() + 1)) {
+                        const dateStr = d.toISOString().split('T')[0];
+                        const dayOfYear = Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24);
+                        const seasonalFactor = Math.sin(dayOfYear / 365 * Math.PI * 2);
+                        
+                        // 历史同期数据略有不同，添加-5到+5的随机偏移
+                        const historicalOffset = (Math.random() - 0.5) * 10;
+                        const basePM25 = 45 + seasonalFactor * 25 + (Math.random() - 0.5) * 15 + stationOffset + historicalOffset;
+                        const basePM10 = basePM25 * 1.5 + (Math.random() - 0.5) * 10 + stationOffset * 0.5 + historicalOffset * 0.5;
+                        
+                        historicalData.push({
+                            date: dateStr,
+                            PM25: Math.max(0, Math.round(basePM25)),
+                            PM10: Math.max(0, Math.round(basePM10)),
+                            O3_8h: Math.max(0, Math.round(80 + seasonalFactor * 40 + (Math.random() - 0.5) * 25 + stationOffset + historicalOffset)),
+                            NO2: Math.max(0, Math.round(30 + seasonalFactor * 15 + (Math.random() - 0.5) * 10 + stationOffset * 0.7 + historicalOffset * 0.7)),
+                            SO2: Math.max(0, Math.round(15 + seasonalFactor * 8 + (Math.random() - 0.5) * 5 + stationOffset * 0.3 + historicalOffset * 0.3)),
+                            CO: Math.max(0, Math.round((0.8 + seasonalFactor * 0.3 + (Math.random() - 0.5) * 0.2) * 10) / 10),
+                            AQI: 0
+                        });
+                    }
+                } else {
+                    // 小时数据（采样）
+                    for (let d = new Date(historicalStart); d <= historicalEnd; d.setDate(d.getDate() + 1)) {
+                        const dateStr = d.toISOString().split('T')[0];
+                        for (let h = 0; h < 24; h += 2) {
+                            const hour = String(h).padStart(2, '0');
+                            const timeStr = `${dateStr} ${hour}:00:00`;
+                            const dayOfYear = Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24);
+                            const seasonalFactor = Math.sin(dayOfYear / 365 * Math.PI * 2);
+                            const hourlyFactor = Math.sin(h / 24 * Math.PI * 2);
+                            
+                            // 历史同期数据略有不同
+                            const historicalOffset = (Math.random() - 0.5) * 10;
+                            const basePM25 = 45 + seasonalFactor * 25 + hourlyFactor * 10 + (Math.random() - 0.5) * 15 + stationOffset + historicalOffset;
+                            const basePM10 = basePM25 * 1.5 + (Math.random() - 0.5) * 10 + stationOffset * 0.5 + historicalOffset * 0.5;
+                            
+                            historicalData.push({
+                                date: dateStr,
+                                time: timeStr,
+                                hour: h,
+                                PM25: Math.max(0, Math.round(basePM25)),
+                                PM10: Math.max(0, Math.round(basePM10)),
+                                O3_8h: Math.max(0, Math.round(80 + seasonalFactor * 40 + hourlyFactor * 20 + (Math.random() - 0.5) * 25 + stationOffset + historicalOffset)),
+                                NO2: Math.max(0, Math.round(30 + seasonalFactor * 15 + hourlyFactor * 8 + (Math.random() - 0.5) * 10 + stationOffset * 0.7 + historicalOffset * 0.7)),
+                                SO2: Math.max(0, Math.round(15 + seasonalFactor * 8 + hourlyFactor * 3 + (Math.random() - 0.5) * 5 + stationOffset * 0.3 + historicalOffset * 0.3)),
+                                CO: Math.max(0, Math.round((0.8 + seasonalFactor * 0.3 + hourlyFactor * 0.1 + (Math.random() - 0.5) * 0.2) * 10) / 10),
+                                AQI: 0
+                            });
+                        }
+                    }
+                }
+                
+                // 计算历史同期数据的AQI和PM2.5/PM10
+                historicalData.forEach(item => {
+                    const aqi = Math.max(
+                        calculateAQI(item.PM25, 'PM25'),
+                        calculateAQI(item.PM10, 'PM10'),
+                        calculateAQI(item.O3_8h, 'O3'),
+                        calculateAQI(item.NO2, 'NO2'),
+                        calculateAQI(item.SO2, 'SO2'),
+                        calculateAQI(item.CO, 'CO')
+                    );
+                    item.AQI = Math.round(aqi);
+                    item.PM25_PM10 = item.PM10 > 0 ? (item.PM25 / item.PM10).toFixed(3) : 0;
+                });
+                
+                // 合并当前数据和历史数据
+                data = data.concat(historicalData);
+            }
+            
+            return data;
+        }
+
+        function calculateAQI(value, type) {
+            const breakpoints = {
+                PM25: [[0,50,0,35],[50,100,35,75],[100,150,75,115],[150,200,115,150],[200,300,150,250],[300,500,250,500]],
+                PM10: [[0,50,0,50],[50,100,50,150],[100,150,150,250],[150,200,250,350],[200,300,350,420],[300,500,420,600]],
+                O3: [[0,50,0,100],[50,100,100,160],[100,150,160,215],[150,200,215,265],[200,300,265,800],[300,500,800,1200]],
+                NO2: [[0,50,0,40],[50,100,40,80],[100,150,80,180],[150,200,180,280],[200,300,280,565],[300,500,565,750]],
+                SO2: [[0,50,0,50],[50,100,50,150],[100,150,150,475],[150,200,475,800],[200,300,800,1600],[300,500,1600,2620]],
+                CO: [[0,50,0,2],[50,100,2,4],[100,150,4,14],[150,200,14,24],[200,300,24,36],[300,500,36,60]]
+            };
+            
+            const bp = breakpoints[type] || breakpoints.PM25;
+            for (let i = 0; i < bp.length; i++) {
+                if (value >= bp[i][0] && value <= bp[i][1]) {
+                    const aqi = ((bp[i][3] - bp[i][2]) / (bp[i][1] - bp[i][0])) * (value - bp[i][0]) + bp[i][2];
+                    return aqi;
+                }
+            }
+            return 0;
+        }
+
+        // 计算皮尔逊相关系数
+        function calculateCorrelation(x, y) {
+            const n = x.length;
+            const sumX = x.reduce((a, b) => a + b, 0);
+            const sumY = y.reduce((a, b) => a + b, 0);
+            const sumXY = x.reduce((sum, xi, i) => sum + xi * y[i], 0);
+            const sumX2 = x.reduce((sum, xi) => sum + xi * xi, 0);
+            const sumY2 = y.reduce((sum, yi) => sum + yi * yi, 0);
+            
+            const numerator = n * sumXY - sumX * sumY;
+            const denominator = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
+            
+            return denominator === 0 ? 0 : numerator / denominator;
+        }
+
+        function initPollutantSelector() {
+            const selector = document.getElementById('pollutantSelector');
+            pollutants.forEach(pollutant => {
+                const checkbox = document.createElement('div');
+                checkbox.className = 'dropdown-item';
+                checkbox.innerHTML = `
+                    <input type="checkbox" id="poll_${pollutant.id}" checked onchange="updateSelectedPollutants()">
+                    <label for="poll_${pollutant.id}">${pollutant.name}</label>
+                `;
+                selector.appendChild(checkbox);
+            });
+            
+            // 初始化选择计数
+            updateSelectedPollutantsText();
+            
+            // 初始化散点图选择器
+            const scatterX = document.getElementById('scatterX');
+            const scatterY = document.getElementById('scatterY');
+            pollutants.forEach(pollutant => {
+                const optionX = document.createElement('option');
+                optionX.value = pollutant.id;
+                optionX.textContent = pollutant.name;
+                scatterX.appendChild(optionX);
+                
+                const optionY = document.createElement('option');
+                optionY.value = pollutant.id;
+                optionY.textContent = pollutant.name;
+                scatterY.appendChild(optionY);
+            });
+            scatterX.value = 'PM25';
+            scatterY.value = 'PM10';
+        }
+
+        // 切换污染物下拉框显示/隐藏
+        function togglePollutantDropdown() {
+            const dropdownContent = document.getElementById('pollutantDropdownContent');
+            dropdownContent.style.display = dropdownContent.style.display === 'block' ? 'none' : 'block';
+        }
+        
+        // 点击页面其他地方关闭下拉框
+        document.addEventListener('click', function(event) {
+            const dropdown = document.querySelector('.dropdown-multiselect');
+            if (!dropdown.contains(event.target)) {
+                document.getElementById('pollutantDropdownContent').style.display = 'none';
+            }
+        });
+        
+        // 切换全选
+        function toggleSelectAllPollutants() {
+            const selectAll = document.getElementById('selectAllPollutants');
+            const checkboxes = document.querySelectorAll('#pollutantSelector input[type="checkbox"]');
+            
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = selectAll.checked;
+            });
+            
+            updateSelectedPollutants();
+        }
+        
+        // 更新已选择污染物数量显示
+        function updateSelectedPollutantsText() {
+            const checkboxes = document.querySelectorAll('#pollutantSelector input[type="checkbox"]:checked');
+            const selectedText = document.getElementById('selectedPollutantsText');
+            
+            if (checkboxes.length === 0) {
+                selectedText.textContent = '选择污染物...';
+            } else if (checkboxes.length === pollutants.length) {
+                selectedText.textContent = '已选择：全选';
+                document.getElementById('selectAllPollutants').checked = true;
+            } else {
+                selectedText.textContent = `已选择：${checkboxes.length}个污染物`;
+                document.getElementById('selectAllPollutants').checked = false;
+            }
+        }
+        
+        function updateSelectedPollutants() {
+            selectedPollutants = [];
+            pollutants.forEach(pollutant => {
+                if (document.getElementById(`poll_${pollutant.id}`).checked) {
+                    selectedPollutants.push(pollutant.id);
+                }
+            });
+            
+            // 更新选择计数
+            updateSelectedPollutantsText();
+            
+            updateAnalysis();
+        }
+
+        function analyze() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const timeType = document.getElementById('timeType').value;
+            const includeHistorical = document.getElementById('historicalPeriod').checked;
+            
+            // 获取当前站点ID，用于生成不同站点的数据偏移
+            const stationId = document.getElementById('stationSelect').value;
+            const stationOffset = parseInt(stationId.replace('station', '')) * 3;
+            
+            allData = generateData(startDate, endDate, timeType, includeHistorical, stationOffset);
+            updateAnalysis();
+        }
+
+        function updateAnalysis() {
+            if (selectedPollutants.length < 2) {
+                alert('请至少选择2个污染物进行分析');
+                return;
+            }
+            
+            // 计算相关性矩阵
+            correlationMatrix = {};
+            selectedPollutants.forEach(p1 => {
+                correlationMatrix[p1] = {};
+                selectedPollutants.forEach(p2 => {
+                    const values1 = allData.map(d => parseFloat(d[p1]) || 0);
+                    const values2 = allData.map(d => parseFloat(d[p2]) || 0);
+                    correlationMatrix[p1][p2] = calculateCorrelation(values1, values2);
+                });
+            });
+            
+            updateTableView();
+            updateMatrixChart();
+            updateLineChart();
+            updateScatterChart();
+        }
+
+        function updateTableView() {
+            const table = document.getElementById('correlationTable');
+            const basePollutantId = document.getElementById('basePollutant').value;
+            const basePollutant = pollutants.find(p => p.id === basePollutantId);
+            
+            // 显示基准因子与其他7个污染因子的关联度
+            const otherPollutants = pollutants.filter(p => p.id !== basePollutantId && ['PM25', 'PM10', 'O3_8h', 'NO2', 'SO2', 'CO', 'AQI'].includes(p.id));
+            
+            let html = '<tr><th>基准因子</th><th>对比因子</th><th>关联度</th></tr>';
+            
+            otherPollutants.forEach(pollutant => {
+                const corr = correlationMatrix[basePollutantId]?.[pollutant.id] || 0;
+                const absCorr = Math.abs(corr);
+                let className = '';
+                if (absCorr >= 0.7) className = 'high-correlation';
+                else if (absCorr >= 0.4) className = 'medium-correlation';
+                else if (absCorr >= 0.2) className = 'low-correlation';
+                
+                html += `<tr>
+                    <td>${basePollutant.name}</td>
+                    <td>${pollutant.name}</td>
+                    <td class="${className}"><span class="correlation-value">${corr.toFixed(3)}</span></td>
+                </tr>`;
+            });
+            
+            table.innerHTML = html;
+        }
+
+        function updateMatrixChart() {
+            // 更新矩阵表格
+            const matrixTable = document.getElementById('matrixCorrelationTable');
+            let html = '<tr><th></th>';
+            selectedPollutants.forEach(p => {
+                const pollutant = pollutants.find(pl => pl.id === p);
+                html += `<th>${pollutant.name}</th>`;
+            });
+            html += '</tr>';
+            
+            selectedPollutants.forEach(p1 => {
+                const pollutant1 = pollutants.find(pl => pl.id === p1);
+                html += `<tr><th>${pollutant1.name}</th>`;
+                selectedPollutants.forEach(p2 => {
+                    const corr = correlationMatrix[p1][p2];
+                    const absCorr = Math.abs(corr);
+                    let className = '';
+                    if (absCorr >= 0.7) className = 'high-correlation';
+                    else if (absCorr >= 0.4) className = 'medium-correlation';
+                    else if (absCorr >= 0.2) className = 'low-correlation';
+                    
+                    html += `<td class="${className}"><span class="correlation-value">${corr.toFixed(3)}</span></td>`;
+                });
+                html += '</tr>';
+            });
+            
+            matrixTable.innerHTML = html;
+            
+            // 更新矩阵图（热力图）
+            const ctx = document.getElementById('matrixChart');
+            if (!ctx) return;
+            
+            if (matrixChart) {
+                matrixChart.destroy();
+            }
+            
+            const labels = selectedPollutants.map(p => {
+                const pollutant = pollutants.find(pl => pl.id === p);
+                return pollutant.name;
+            });
+            
+            // 准备热力图数据
+            const data = selectedPollutants.map(p1 => {
+                return selectedPollutants.map(p2 => correlationMatrix[p1][p2]);
+            });
+            
+            // 扁平化数据用于热力图
+            const flattenedData = [];
+            for (let i = 0; i < selectedPollutants.length; i++) {
+                for (let j = 0; j < selectedPollutants.length; j++) {
+                    flattenedData.push({
+                        x: j,
+                        y: i,
+                        v: data[i][j]
+                    });
+                }
+            }
+            
+            matrixChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    datasets: [{
+                        label: '相关系数',
+                        data: flattenedData,
+                        backgroundColor: function(context) {
+                            const value = context.parsed.v;
+                            const absValue = Math.abs(value);
+                            if (absValue >= 0.7) return 'rgba(231, 76, 60, 0.8)';
+                            else if (absValue >= 0.4) return 'rgba(241, 196, 15, 0.8)';
+                            else if (absValue >= 0.2) return 'rgba(52, 152, 219, 0.8)';
+                            return 'rgba(189, 195, 199, 0.8)';
+                        },
+                        borderColor: 'rgba(255, 255, 255, 0.5)',
+                        borderWidth: 1,
+                        barPercentage: 0.9,
+                        categoryPercentage: 0.9
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    height: 400,
+                    scales: {
+                        y: {
+                            type: 'category',
+                            labels: labels,
+                            title: { display: true, text: '污染物' }
+                        },
+                        x: {
+                            type: 'category',
+                            labels: labels,
+                            title: { display: true, text: '污染物' }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `相关系数: ${context.parsed.v.toFixed(3)}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateLineChart() {
+            const ctx = document.getElementById('lineChart');
+            if (!ctx) return;
+            
+            if (lineChart) {
+                lineChart.destroy();
+            }
+            
+            const filteredData = filterDataByRange(allData);
+            const timeKey = filteredData[0]?.time || filteredData[0]?.date;
+            const labels = filteredData.map(d => d.time || d.date);
+            
+            const colors = ['#3498db', '#e74c3c', '#27ae60', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#34495e'];
+            
+            const datasets = selectedPollutants.map((p, idx) => {
+                const pollutant = pollutants.find(pl => pl.id === p);
+                const values = filteredData.map(d => parseFloat(d[p]) || 0);
+                
+                return {
+                    label: pollutant.name,
+                    data: values,
+                    borderColor: colors[idx % colors.length],
+                    backgroundColor: colors[idx % colors.length] + '20',
+                    tension: 0.4,
+                    yAxisID: 'y'
+                };
+            });
+            
+            lineChart = new Chart(ctx, {
+                type: 'line',
+                data: { labels, datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    height: 400,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: '浓度值' }
+                        },
+                        x: {
+                            title: { display: true, text: '时间' },
+                            ticks: { maxRotation: 45, minRotation: 45 }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: true, position: 'top' }
+                    }
+                }
+            });
+        }
+
+        // 计算线性回归
+        function calculateLinearRegression(data) {
+            const n = data.length;
+            if (n === 0) return { slope: 0, intercept: 0 };
+            
+            const sumX = data.reduce((sum, point) => sum + point.x, 0);
+            const sumY = data.reduce((sum, point) => sum + point.y, 0);
+            const sumXY = data.reduce((sum, point) => sum + point.x * point.y, 0);
+            const sumX2 = data.reduce((sum, point) => sum + point.x * point.x, 0);
+            
+            const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+            const intercept = (sumY - slope * sumX) / n;
+            
+            return { slope, intercept };
+        }
+        
+        function updateScatterChart() {
+            const ctx = document.getElementById('scatterChart');
+            if (!ctx) return;
+            
+            if (scatterChart) {
+                scatterChart.destroy();
+            }
+            
+            const xPollutant = document.getElementById('scatterX').value;
+            const yPollutant = document.getElementById('scatterY').value;
+            
+            const data = allData.map(d => ({
+                x: parseFloat(d[xPollutant]) || 0,
+                y: parseFloat(d[yPollutant]) || 0
+            }));
+            
+            const corr = correlationMatrix[xPollutant]?.[yPollutant] || 0;
+            
+            // 计算线性回归
+            const regression = calculateLinearRegression(data);
+            
+            // 生成回归线上的点
+            const xValues = data.map(d => d.x);
+            const minX = Math.min(...xValues);
+            const maxX = Math.max(...xValues);
+            
+            const regressionLineData = [
+                { x: minX, y: regression.slope * minX + regression.intercept },
+                { x: maxX, y: regression.slope * maxX + regression.intercept }
+            ];
+            
+            scatterChart = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [
+                        {
+                            label: `${pollutants.find(p => p.id === xPollutant).name} vs ${pollutants.find(p => p.id === yPollutant).name} (r=${corr.toFixed(3)})`,
+                            data: data,
+                            backgroundColor: 'rgba(52, 152, 219, 0.5)',
+                            borderColor: 'rgba(52, 152, 219, 1)',
+                            pointRadius: 4,
+                            type: 'scatter'
+                        },
+                        {
+                            label: '回归线',
+                            data: regressionLineData,
+                            borderColor: 'rgba(231, 76, 60, 1)',
+                            backgroundColor: 'transparent',
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            type: 'line',
+                            fill: false,
+                            tension: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    height: 400,
+                    scales: {
+                        x: {
+                            title: { display: true, text: pollutants.find(p => p.id === xPollutant).name }
+                        },
+                        y: {
+                            title: { display: true, text: pollutants.find(p => p.id === yPollutant).name }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: true, position: 'top' }
+                    }
+                }
+            });
+        }
+
+        function filterDataByRange(data) {
+            const total = data.length;
+            const startIdx = Math.floor(total * currentTimeRange.start / 100);
+            const endIdx = Math.floor(total * currentTimeRange.end / 100);
+            return data.slice(startIdx, endIdx);
+        }
+
+        function adjustTimeline(value) {
+            currentTimeRange.end = parseInt(value);
+            updateLineChart();
+        }
+        
+        // 初始化双滑块时间轴
+        function initTimeline() {
+            const container = document.querySelector('.timeline-slider-container');
+            const range = document.getElementById('timelineRange');
+            const handleLeft = document.getElementById('timelineHandleLeft');
+            const handleRight = document.getElementById('timelineHandleRight');
+            const startLabel = document.getElementById('timelineStart');
+            const endLabel = document.getElementById('timelineEnd');
+            
+            if (!container || !range || !handleLeft || !handleRight) return;
+            
+            // 更新时间轴标签显示
+            function updateTimelineLabels() {
+                const startDate = document.getElementById('startDate').value;
+                const endDate = document.getElementById('endDate').value;
+                startLabel.textContent = startDate;
+                endLabel.textContent = endDate;
+            }
+            
+            // 设置初始位置
+            updateTimelineUI();
+            updateTimelineLabels(); // 初始化时间标签
+            
+            // 添加事件监听器
+            handleLeft.addEventListener('mousedown', (e) => startDrag(e, 'left'));
+            handleRight.addEventListener('mousedown', (e) => startDrag(e, 'right'));
+            
+            document.addEventListener('mousemove', handleDrag);
+            document.addEventListener('mouseup', stopDrag);
+            
+            function startDrag(e, handle) {
+                isDragging = true;
+                activeHandle = handle;
+                e.preventDefault();
+            }
+            
+            function handleDrag(e) {
+                if (!isDragging) return;
+                
+                const rect = container.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const percent = Math.max(0, Math.min(100, (x / rect.width) * 100));
+                
+                if (activeHandle === 'left') {
+                    if (percent < currentTimeRange.end - 5) {
+                        currentTimeRange.start = percent;
+                    }
+                } else if (activeHandle === 'right') {
+                    if (percent > currentTimeRange.start + 5) {
+                        currentTimeRange.end = percent;
+                    }
+                }
+                
+                updateTimelineUI();
+                updateLineChart();
+            }
+            
+            function stopDrag() {
+                isDragging = false;
+                activeHandle = null;
+            }
+            
+            function updateTimelineUI() {
+                range.style.left = currentTimeRange.start + '%';
+                range.style.width = (currentTimeRange.end - currentTimeRange.start) + '%';
+                handleLeft.style.left = currentTimeRange.start + '%';
+                handleRight.style.left = currentTimeRange.end + '%';
+            }
+            
+            return updateTimelineLabels;
+        }
+        
+        // 退出登录函数
+        function logout() {
+            alert('已退出登录');
+            window.location.href = 'login.html';
+        }
+
+        function switchView(view) {
+            currentView = view;
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.view-content').forEach(content => content.style.display = 'none');
+            
+            event.target.classList.add('active');
+            document.getElementById(view + 'View').style.display = 'block';
+        }
+
+        function exportImage() {
+            let chart;
+            if (currentView === 'matrix' && matrixChart) chart = matrixChart;
+            else if (currentView === 'line' && lineChart) chart = lineChart;
+            else if (currentView === 'scatter' && scatterChart) chart = scatterChart;
+            
+            if (chart) {
+                const url = chart.toBase64Image();
+                const link = document.createElement('a');
+                link.download = '污染物关联性分析结果.png';
+                link.href = url;
+                link.click();
+            }
+        }
+
+        function exportCSV() {
+            let csv = '污染物';
+            selectedPollutants.forEach(p => {
+                const pollutant = pollutants.find(pl => pl.id === p);
+                csv += `,${pollutant.name}`;
+            });
+            csv += '\n';
+            
+            selectedPollutants.forEach(p1 => {
+                const pollutant1 = pollutants.find(pl => pl.id === p1);
+                csv += pollutant1.name;
+                selectedPollutants.forEach(p2 => {
+                    csv += `,${correlationMatrix[p1][p2].toFixed(3)}`;
+                });
+                csv += '\n';
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = '污染物关联性分析结果.csv';
+            link.click();
+        }
+
+        // 初始化
+        window.onload = function() {
+            initPollutantSelector();
+            updateSelectedPollutants();
+            analyze();
+            
+            // 初始化时间轴并获取标签更新函数
+            const updateTimelineLabels = initTimeline();
+            
+            // 监听查询条件中时间变化，同步更新时间轴显示
+            document.getElementById('startDate').addEventListener('change', updateTimelineLabels);
+            document.getElementById('endDate').addEventListener('change', updateTimelineLabels);
+        };
+    </script>
+</body>
+</html>
+
